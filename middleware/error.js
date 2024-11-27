@@ -1,14 +1,8 @@
-class ErrorHandler extends Error {
-    constructor(message, statusCode) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
+
+import { ErrorHandler } from "../utils/errorHandler.js";
 
 
-
-
-export const errorMiddleware = (err, req, res, next) => {
+ const errorMiddleware = (err, req, res, next) => {
     if (err.code === 11000) {
         const message = `Duplicate ${Object.keys(err.keyValue)} Entered`;
         err = new ErrorHandler(message, 400);
@@ -36,4 +30,4 @@ export const errorMiddleware = (err, req, res, next) => {
     });
 }
 
-export default ErrorHandler
+export default errorMiddleware

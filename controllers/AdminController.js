@@ -1,6 +1,7 @@
-import Admin from '../models/Admin.js';
+
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import Admin from '../models/AdminSchema.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
