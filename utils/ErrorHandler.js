@@ -1,9 +1,11 @@
-// error.js
-export const ErrorHandler = (message, statusCode) => {
-    const error = new Error(message);
-    error.statusCode = statusCode;
-    return error;
-  };
-  
+class ErrorHandler extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
 
-  
+    // Captures the stack trace and ensures it is cleaned up
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+export default ErrorHandler;

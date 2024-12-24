@@ -3,8 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/dbConnection.js';
-import farmerRoutes from "./routers/FarmersRouter.js"
-import agriCustomerRoutes from "./routers/AgriCusotmerRouter.js"
+
 import adminRoutes from "./routers/adminRouter.js"
 import userRouter from "./routers/userRouter.js"
 
@@ -16,7 +15,11 @@ dotenv.config();
 
 // Middleware to parse JSON data
 app.use(express.json());
-app.use(cors()); // Enable CORS
+app.use(cors({
+  origin: 'http://localhost:5000', // Frontend URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Connect to MongoDB
 connectDB(); // Call the MongoDB connection function
@@ -27,8 +30,7 @@ app.get('/', (req, res) => {
 });
 
 // Use routers
-app.use('/api/farmers', farmerRoutes); // Farmers routes
-app.use('/api/customers', agriCustomerRoutes); // AgriCustomers routes
+
 app.use('/api/admin', adminRoutes); // Admin routes
 app.use('/api/user', userRouter); // Admin routes
 

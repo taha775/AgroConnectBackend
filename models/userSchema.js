@@ -45,7 +45,13 @@ const userSchema = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
-    }
+    },
+    shops: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shop",
+      }
+    ]
    
   },
   { timestamps: true } // Automatically add createdAt and updatedAt fields
@@ -56,10 +62,12 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Sign access token
+// Sign access token (updated for 10 days expiration)
 userSchema.methods.SignAccessToken = function () {
+  // Use ACCESS_TOKEN_EXPIRES environment variable or default to 10 days (864000 seconds)
+  const accessTokenExpire = process.env.ACCESS_TOKEN_EXPIRES || "864000"; // 10 days = 864000 seconds
   return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "", {
-    expiresIn: "5m",
+    expiresIn: `${accessTokenExpire}s`, // Set expiration to 10 days
   });
 };
 
@@ -83,4 +91,4 @@ userSchema.pre("save", async function (next) {
 // Create and export the User model
 const userModel = mongoose.model("User", userSchema);
 
-export default userModel
+export default userModel;
