@@ -11,9 +11,7 @@ router.post('/activate-user',activateUser)
 router.post('/login-user',LoginUser)
 router.post("/create-shop", createShop);
 router.post("/login-shop", loginShop);
-router.post("/create-shop-product", createProduct);
-router.get("/get-mystoreproducts",getShopProducts);
-router.delete("/delete-products",deleteProducts);
+
 
 
 export default router;

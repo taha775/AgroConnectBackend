@@ -66,119 +66,132 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
 
 
 export const updateProduct = catchAsyncErrors(async (req, res, next) => {
-    const { productId } = req.params;
-    const { name, description, price, stock, image } = req.body;
-  
-    // Validate inputs
-    if (!name || !description || !price || !stock || !image) {
-      return next(new ErrorHandler("Please provide all required fields", 400));
+  const { productId } = req.params;
+  const { name, description, price, stock, image } = req.body;
+
+  if (!productId) {
+    return next(new ErrorHandler("Product ID is required", 400));
+  }
+
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+
+  if (!token) {
+    return next(new ErrorHandler("No token provided, product update not allowed", 401));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
+    const shop = await Shop.findById(decoded.id);
+
+    if (!shop) {
+      return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
-  
-    // Check for the token in the Authorization header (Bearer token)
-    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
-  
-    if (!token) {
-      return next(new ErrorHandler("No token provided, product update not allowed", 401));
+
+    const product = await Product.findOne({ _id: productId, shop: shop._id });
+    if (!product) {
+      return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
     }
-  
-    try {
-      // Verify the token using the shop's secret
-      const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
-      console.log(decoded, "Decoded Token");
-  
-      // Find the shop by ID from the decoded token data
-      const shop = await Shop.findById(decoded.id);
-      if (!shop) {
-        return next(new ErrorHandler("Shop not found or token is invalid", 401));
-      }
-  
-      // Find the product by ID and ensure it's linked to the shop
-      const product = await Product.findOne({ _id: productId, shop: shop._id });
-      if (!product) {
-        return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
-      }
-  
-      // Update the product details
-      product.name = name;
-      product.description = description;
+
+    // Update only provided fields
+    if (name) product.name = name;
+    if (description) product.description = description;
+    if (price) {
+      if (isNaN(price)) return next(new ErrorHandler("Price must be a number", 400));
       product.price = price;
+    }
+    if (stock) {
+      if (isNaN(stock)) return next(new ErrorHandler("Stock must be a number", 400));
       product.stock = stock;
-      product.image = image;
-  
-      // Save the updated product
-      await product.save();
-  
-      // Respond with success message
-      res.status(200).json({
-        success: true,
-        message: "Product updated successfully",
-        product,
-      });
-  
-    } catch (error) {
-      console.error("Error in updateProduct:", error);
-      return next(new ErrorHandler("Invalid token or token expired", 401));
     }
-  });
+    if (image) product.image = image;
 
-  
+    await product.save();
 
-
-
-
-
-
-  
-
-
-
-  export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
-    const { productId } = req.params;
-  
-    // Check for the token in the Authorization header (Bearer token)
-    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
-  
-    if (!token) {
-      return next(new ErrorHandler("No token provided, product deletion not allowed", 401));
+    res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      product: {
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        stock: product.stock,
+        image: product.image,
+      },
+    });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return next(new ErrorHandler("Token expired, please login again", 401));
     }
-  
-    try {
-      // Verify the token using the shop's secret
-      const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
-      console.log(decoded, "Decoded Token");
-  
-      // Find the shop by ID from the decoded token data
-      const shop = await Shop.findById(decoded.id);
-      if (!shop) {
-        return next(new ErrorHandler("Shop not found or token is invalid", 401));
-      }
-  
-      // Find the product by ID and ensure it's linked to the shop
-      const product = await Product.findOne({ _id: productId, shop: shop._id });
-      if (!product) {
-        return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
-      }
-  
-      // Remove the product from the shop's product list
-      shop.products = shop.products.filter(productId => productId.toString() !== product._id.toString());
-      await shop.save();
-  
-      // Delete the product
-      await product.remove();
-  
-      // Respond with success message
-      res.status(200).json({
-        success: true,
-        message: "Product deleted successfully",
-      });
-  
-    } catch (error) {
-      console.error("Error in deleteProduct:", error);
-      return next(new ErrorHandler("Invalid token or token expired", 401));
+    if (error.name === "JsonWebTokenError") {
+      return next(new ErrorHandler("Invalid token", 401));
     }
-  });
+    console.error("Error in updateProduct:", error);
+    return next(new ErrorHandler("Error updating product", 500));
+  }
+});
 
-   export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
+  
+
+
+
+
+
+
+  
+
+
+
+export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
+  const { productId } = req.params;
+
+  // Check for the token in the Authorization header (Bearer token)
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
+
+  if (!token) {
+    return next(new ErrorHandler("No token provided, product deletion not allowed", 401));
+  }
+
+  try {
+    // Verify the token using the shop's secret
+    const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
+    console.log(decoded, "Decoded Token");
+
+    // Find the shop by ID from the decoded token data
+    const shop = await Shop.findById(decoded.id);
+    if (!shop) {
+      return next(new ErrorHandler("Shop not found or token is invalid", 401));
+    }
+
+    // Find the product by ID and ensure it's linked to the shop
+    const product = await Product.findOne({ _id: productId, shop: shop._id });
+    if (!product) {
+      return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
+    }
+
+    // Remove the product from the shop's product list
+    shop.products = shop.products.filter(
+      (id) => id.toString() !== product._id.toString()
+    );
+    await shop.save();
+
+    // Delete the product
+    await Product.deleteOne({ _id: product._id });
+
+    // Respond with success message
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error in deleteProduct:", error);
+    return next(new ErrorHandler("Invalid token or token expired", 401));
+  }
+});
+
+
+
+  
+export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
     // Check for the token in the Authorization header (Bearer token)
     const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
   
@@ -209,6 +222,50 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
     }
   });
 
+
+  export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next) => {
+    const { productId } = req.params;
+  
+    // Check for the token in the Authorization header (Bearer token)
+    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
+  
+    if (!token) {
+      return next(new ErrorHandler("No token provided, unable to fetch product details", 401));
+    }
+  
+    try {
+      // Verify the token using the shop's secret
+      const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
+      console.log(decoded, "Decoded Token");
+  
+      // Ensure the product ID is provided
+      if (!productId) {
+        return next(new ErrorHandler("Product ID is required", 400));
+      }
+  
+      // Find the product by its ID
+      const product = await Product.findOne({ _id: productId, shop: decoded.id }); // Ensure the product belongs to the authenticated shop
+  
+      if (!product) {
+        return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
+      }
+  
+      // Respond with the product details
+      res.status(200).json({
+        success: true,
+        product,
+      });
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+  
+      if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+        return next(new ErrorHandler("Invalid or expired token", 401));
+      }
+  
+      return next(new ErrorHandler("Error fetching product details", 500));
+    }
+  });
+  
   
 
 
