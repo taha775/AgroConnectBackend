@@ -1,6 +1,6 @@
 import userModel from "../models/userSchema.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
-import jwt from "jsonwebtoken";
+import jwt, { decode } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";  // Default import for sendMail
 import ErrorHandler  from "../utils/errorHandler.js";
 import sendToken from "../middleware/jwt.js"
@@ -230,8 +230,7 @@ export const createShop = catchAsyncErrors(async (req, res, next) => {
 
 
 export const loginShop = catchAsyncErrors(async (req, res, next) => {
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; 
-  console.log(token);
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
 
   // Validate the token input
   if (!token) {
@@ -243,10 +242,19 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log(decoded.id, "Decoded Token");
 
-    // Find the shop using the user ID from the decoded token
-    const shop = await Shop.findOne({ owner: decoded.id }); // Use `decoded.id` as user ID
+    const { shop_code, password } = req.body;
+
+    // Find the shop by `shop_code` and `owner` from the decoded token's ID
+    const shop = await Shop.findOne({ shop_code, owner: decoded.id }).select("+password");
+
     if (!shop) {
       return next(new ErrorHandler("Shop not found for this user", 404));
+    }
+
+    // Compare the provided password with the hashed password in DB
+    const isPasswordMatched = await bcrypt.compare(password, shop.password);
+    if (!isPasswordMatched) {
+      return next(new ErrorHandler("Invalid shop_code or password", 401));
     }
 
     // Proceed with the login process
@@ -267,6 +275,61 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid token", 401));
   }
 });
+
+
+
+
+// import jwt from 'jsonwebtoken';
+// import bcrypt from 'bcryptjs';
+// import Shop from '../models/shopModel'; // Assuming this is the Shop model
+// import ErrorHandler from '../utils/errorHandler'; // Custom error handler
+// import catchAsyncErrors from '../middlewares/catchAsyncErrors'; // Middleware for async error handling
+
+// export const loginShop = catchAsyncErrors(async (req, res, next) => {
+//   const { shop_code, password } = req.body;
+
+//   // Validate input fields
+//   if (!shop_code || !password) {
+//     return next(new ErrorHandler("Please provide shop_code and password", 400));
+//   }
+
+//   try {
+//     // Find the shop by `shop_code`
+//     const shop = await Shop.findOne({ shop_code }).select("+password"); // Ensure password is included in the result
+//     if (!shop) {
+//       return next(new ErrorHandler("Invalid shop_code or password", 401));
+//     }
+
+//     // Compare the provided password with the hashed password stored in DB
+//     const isPasswordMatched = await bcrypt.compare(password, shop.password);
+//     if (!isPasswordMatched) {
+//       return next(new ErrorHandler("Invalid shop_code or password", 401));
+//     }
+
+//     // Generate JWT token
+//     const token = jwt.sign(
+//       { id: shop._id, shop_code: shop.shop_code, owner: shop.owner }, // Payload with the shop's details
+//       process.env.JWT_SECRET,
+//       { expiresIn: "10d" } // Token valid for 10 days
+//     );
+
+//     // Respond with success and token
+//     res.status(200).json({
+//       success: true,
+//       message: "Shop logged in successfully",
+//       token,
+//       shop: {
+//         name: shop.name,
+//         shop_code: shop.shop_code,
+//         owner: shop.owner,
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error in loginShop:", error);
+//     return next(new ErrorHandler("An error occurred while logging in", 500));
+//   }
+// });
+
 
 
 
