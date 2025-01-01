@@ -211,19 +211,14 @@ export const createShop = catchAsyncErrors(async (req, res, next) => {
     user.shops.push(shop._id);
     await user.save();
 
-    // Generate a new token for the shop (shopToken)
-    const shopToken = jwt.sign(
-      { id: shop._id, shop_code: shop.shop_code }, // payload
-      process.env.JWT_SHOP_SECRET, // secret key
-      { expiresIn: '10d' } // expiration time (1 hour in this case)
-    );
 
+ 
     // Return a successful response along with the new shop token
     res.status(201).json({
       success: true,
       message: "Shop created successfully",
       shop,
-      shopToken, // Send the new shopToken to the client
+ 
     });
 
   } catch (error) {
@@ -235,45 +230,26 @@ export const createShop = catchAsyncErrors(async (req, res, next) => {
 
 
 export const loginShop = catchAsyncErrors(async (req, res, next) => {
-  const { shop_code, password } = req.body;
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; 
+  console.log(token);
 
-  // Validate inputs
-  if (!shop_code || !password) {
-    return next(new ErrorHandler("Please provide shop code and password", 400));
-  }
-
-  // Check for the token in the Authorization header
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
-
+  // Validate the token input
   if (!token) {
-    return next(new ErrorHandler("No token provided, shop login not allowed", 401));
+    return next(new ErrorHandler("Please provide a token", 400));
   }
 
   try {
-    // Verify the token using the shop's secret (or global secret)
-    const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
-    console.log(decoded, "Decoded Token");
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded.id, "Decoded Token");
 
-    // Find the shop by ID from the decoded token data and include password field
-    const shop = await Shop.findById(decoded.id).select('+password');
+    // Find the shop using the user ID from the decoded token
+    const shop = await Shop.findOne({ owner: decoded.id }); // Use `decoded.id` as user ID
     if (!shop) {
-      return next(new ErrorHandler("Invalid shop code or password", 401));
+      return next(new ErrorHandler("Shop not found for this user", 404));
     }
 
-    // Check if the shop code matches the one provided
-    if (shop.shop_code !== shop_code) {
-      return next(new ErrorHandler("Invalid shop code or password", 400));
-    }
-
-    // Manually compare the password using bcrypt.compare
-    const isPasswordMatched = await bcrypt.compare(password, shop.password);  // Direct password comparison
-    console.log(isPasswordMatched, "Password Match Check");
-
-    if (!isPasswordMatched) {
-      return next(new ErrorHandler("Invalid shop code or password", 400));
-    }
-
-    // Proceed if the token is valid and password matches
+    // Proceed with the login process
     res.status(200).json({
       success: true,
       message: "Shop logged in successfully",
@@ -281,16 +257,14 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
         name: shop.name,
         shop_code: shop.shop_code,
         owner: shop.owner,
-        token
       },
     });
-
   } catch (error) {
     console.error("Error in loginShop:", error); // Log the error for debugging
-    if (error.name === 'TokenExpiredError') {
+    if (error.name === "TokenExpiredError") {
       return next(new ErrorHandler("Token expired, please login again", 401));
     }
-    return next(new ErrorHandler("Invalid token or token expired", 401));
+    return next(new ErrorHandler("Invalid token", 401));
   }
 });
 

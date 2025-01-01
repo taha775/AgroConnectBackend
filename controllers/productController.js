@@ -24,11 +24,12 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
 
   try {
     // Verify the token using the shop's secret
-    const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
-    console.log(decoded, "Decoded Token");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded.id, "Decoded Token");
 
     // Find the shop by ID from the decoded token data
-    const shop = await Shop.findById(decoded.id);
+    const shop = await Shop.findOne({owner:decoded.id});
+    console.log(shop)
     if (!shop) {
       return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
@@ -80,12 +81,13 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
-    const shop = await Shop.findById(decoded.id);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const shop = await Shop.findOne({owner:decoded.id});
 
     if (!shop) {
       return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
+
 
     const product = await Product.findOne({ _id: productId, shop: shop._id });
     if (!product) {
@@ -153,11 +155,11 @@ export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
 
   try {
     // Verify the token using the shop's secret
-    const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
-    console.log(decoded, "Decoded Token");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // console.log(decoded, "Decoded Token");
 
     // Find the shop by ID from the decoded token data
-    const shop = await Shop.findById(decoded.id);
+    const shop = await Shop.findOne({owner:decoded.id});
     if (!shop) {
       return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
@@ -201,11 +203,11 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
   
     try {
       // Verify the token using the shop's secret
-      const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log(decoded, "Decoded Token");
   
       // Find the shop by ID from the decoded token data
-      const shop = await Shop.findById(decoded.id).populate('products');
+      const shop = await Shop.findOne({owner:decoded.id}).populate('products');
       if (!shop) {
         return next(new ErrorHandler("Shop not found or token is invalid", 401));
       }
@@ -234,17 +236,14 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
     }
   
     try {
-      // Verify the token using the shop's secret
-      const decoded = jwt.verify(token, process.env.JWT_SHOP_SECRET);
-      console.log(decoded, "Decoded Token");
-  
-      // Ensure the product ID is provided
+ 
+    
       if (!productId) {
         return next(new ErrorHandler("Product ID is required", 400));
       }
   
       // Find the product by its ID
-      const product = await Product.findOne({ _id: productId, shop: decoded.id }); // Ensure the product belongs to the authenticated shop
+      const product = await Product.findById(productId); // Ensure the product belongs to the authenticated shop
   
       if (!product) {
         return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
