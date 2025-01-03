@@ -7,6 +7,8 @@ import connectDB from './config/dbConnection.js';
 import adminRoutes from "./routers/adminRouter.js"
 import userRouter from "./routers/userRouter.js"
 import productRouter from "./routers/productRouter.js"
+import cartRouter  from "./routers/cartRouter.js"
+import orderRouter from "./routers/orderRouter.js"
 
 
 const app = express();
@@ -35,6 +37,8 @@ app.get('/', (req, res) => {
 app.use('/api/admin', adminRoutes); // Admin routes
 app.use('/api/user', userRouter); // Admin routes
 app.use('/api/products',productRouter); // Admin routes
+app.use('/api/cart',cartRouter)
+app.use('/api/order',orderRouter)
 
 // Export the app
 export default app;
