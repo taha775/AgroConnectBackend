@@ -9,6 +9,7 @@ import userRouter from "./routers/userRouter.js"
 import productRouter from "./routers/productRouter.js"
 import cartRouter  from "./routers/cartRouter.js"
 import orderRouter from "./routers/orderRouter.js"
+import reviewRouter from './routers/reviewRouter.js';
 
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/user', userRouter); // Admin routes
 app.use('/api/products',productRouter); // Admin routes
 app.use('/api/cart',cartRouter)
 app.use('/api/order',orderRouter)
+app.use('/api/review',reviewRouter)
 
 // Export the app
 export default app;
