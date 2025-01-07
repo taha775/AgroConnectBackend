@@ -3,12 +3,14 @@ import { cartModel } from "../models/cartSchema.js"; // Assuming a cart model ex
 import ErrorHandler from "../utils/errorHandler.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt from 'jsonwebtoken';
+import { Product } from "../models/productSchema.js";
 
 
 
-// Create a new order
+
+
 export const createOrder = catchAsyncErrors(async (req, res, next) => {
-  const { shippingAddress, paymentMethod } = req.body;
+  const { items, shippingAddress, paymentMethod } = req.body; // Items is an array of { productId, quantity }
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
@@ -24,21 +26,49 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
 
   const userId = decoded.id;
 
-  // Fetch cart items for the user
-  const cart = await cartModel.findOne({ userId });
-  if (!cart || cart.cartItem.length === 0) {
-    return next(new ErrorHandler("Your cart is empty", 400));
+  if (!Array.isArray(items) || items.length === 0) {
+    return next(new ErrorHandler("No items provided for the order", 400));
+  }
+
+  // Validate each product and calculate the total
+  const orderItems = [];
+  let totalPrice = 0;
+
+  for (const item of items) {
+    const { productId, quantity } = item;
+
+    if (!productId || quantity <= 0) {
+      return next(new ErrorHandler("Invalid product or quantity", 400));
+    }
+
+    const product = await Product.findById(productId).select("price stock name");
+    if (!product) {
+      return next(new ErrorHandler(`Product with ID ${productId} not found`, 404));
+    }
+
+    if (quantity > product.stock) {
+      return next(new ErrorHandler(`Insufficient stock for ${product.name}`, 400));
+    }
+
+    // Deduct stock
+    product.stock -= quantity;
+    await product.save();
+
+    // Add to order items
+    orderItems.push({
+      productId,
+      quantity,
+      price: product.price,
+      totalProductDiscount: 0, // Adjust if discounts apply
+    });
+
+    totalPrice += product.price * quantity;
   }
 
   // Prepare order data
   const orderData = {
     userId,
-    cartItems: cart.cartItem.map(item => ({
-      productId: item.productId,
-      quantity: item.quantity,
-      price: item.price,
-      totalProductDiscount: item.totalProductDiscount || 0,
-    })),
+    cartItems: orderItems,
     shippingAddress,
     paymentMethod,
   };
@@ -46,11 +76,9 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
   // Create the order
   const order = await orderModel.create(orderData);
 
-  // Clear the cart after creating the order
-  await cartModel.findOneAndUpdate({ userId }, { cartItem: [] });
-
-  res.status(201).json({ message: "Order created successfully", order });
+  res.status(201).json({ message: "Order placed successfully", order });
 });
+
 
 // Update an order (e.g., mark as paid or delivered)
 export const updateOrder = catchAsyncErrors(async (req, res, next) => {
@@ -63,12 +91,12 @@ export const updateOrder = catchAsyncErrors(async (req, res, next) => {
   }
 
   // Update payment and delivery status
-  if (isPaid !== undefined) {
+  if (typeof isPaid !== "undefined") {
     order.isPaid = isPaid;
     order.paidAt = isPaid ? new Date() : null;
   }
 
-  if (isDelivered !== undefined) {
+  if (typeof isDelivered !== "undefined") {
     order.isDelivered = isDelivered;
     order.deliveredAt = isDelivered ? new Date() : null;
   }
@@ -76,6 +104,7 @@ export const updateOrder = catchAsyncErrors(async (req, res, next) => {
   await order.save();
   res.status(200).json({ message: "Order updated successfully", order });
 });
+
 
 // Get all orders for a user
 export const getUserOrders = catchAsyncErrors(async (req, res, next) => {
@@ -94,35 +123,37 @@ export const getUserOrders = catchAsyncErrors(async (req, res, next) => {
 
   const userId = decoded.id;
 
-  const orders = await orderModel.find({ userId }).populate("cartItems.productId");
+  const orders = await orderModel
+    .find({ userId })
+    .populate("cartItems.productId", "name price");
+
   res.status(200).json({ message: "User orders retrieved successfully", orders });
 });
 
+
 // Get all orders (Admin only)
 export const getAllOrders = catchAsyncErrors(async (req, res, next) => {
-  const orders = await orderModel.find().populate("userId cartItems.productId");
+  const orders = await orderModel
+    .find()
+    .populate("userId", "name email")
+    .populate("cartItems.productId", "name price");
+
   res.status(200).json({ message: "All orders retrieved successfully", orders });
 });
+
 
 // Get single order by ID
 export const getOrderById = catchAsyncErrors(async (req, res, next) => {
   const { orderId } = req.params;
 
-  try {
-    const order = await orderModel
-      .findById(orderId)
-      .populate("userId", "name email")
-      .populate("cartItems.productId", "name price");
+  const order = await orderModel
+    .findById(orderId)
+    .populate("userId", "name email")
+    .populate("cartItems.productId", "name price");
 
-    if (!order) {
-      console.log("No order found with the given ID.");
-      return next(new ErrorHandler("Order not found", 404));
-    }
-
-    console.log("Fetched order:", JSON.stringify(order, null, 2));
-    res.status(200).json({ message: "Order retrieved successfully", order });
-  } catch (error) {
-    console.error("Error fetching order details:", error);
-    return next(new ErrorHandler("Internal Server Error", 500));
+  if (!order) {
+    return next(new ErrorHandler("Order not found", 404));
   }
+
+  res.status(200).json({ message: "Order retrieved successfully", order });
 });

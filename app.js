@@ -20,10 +20,11 @@ dotenv.config();
 // Middleware to parse JSON data
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:5000', // Frontend URL
+  origin: 'http://localhost:5173', // Correct frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 
 // Connect to MongoDB
 connectDB(); // Call the MongoDB connection function
