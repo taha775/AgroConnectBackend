@@ -10,7 +10,7 @@ import productRouter from "./routers/productRouter.js"
 import cartRouter  from "./routers/cartRouter.js"
 import orderRouter from "./routers/orderRouter.js"
 import reviewRouter from './routers/reviewRouter.js';
-
+import farmerRouter from "./routers/farmerRouter.js"
 
 const app = express();
 
@@ -42,6 +42,7 @@ app.use('/api/products',productRouter); // Admin routes
 app.use('/api/cart',cartRouter)
 app.use('/api/order',orderRouter)
 app.use('/api/review',reviewRouter)
+app.use('/api/farmer',farmerRouter)
 
 // Export the app
 export default app;

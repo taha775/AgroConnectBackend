@@ -51,8 +51,13 @@ const userSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: "Shop",
       }
-    ]
-   
+    ],
+    hiredFarmers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "FarmerProfile", // Reference the Farmer Profile schema
+      }
+    ],
   },
   { timestamps: true } // Automatically add createdAt and updatedAt fields
 );
@@ -64,11 +69,12 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 
 // Sign access token (updated for 10 days expiration)
 userSchema.methods.SignAccessToken = function () {
-  // Use ACCESS_TOKEN_EXPIRES environment variable or default to 10 days (864000 seconds)
-  const accessTokenExpire = process.env.ACCESS_TOKEN_EXPIRES || "864000"; // 10 days = 864000 seconds
-  return jwt.sign({ id: this._id }, process.env.ACCESS_TOKEN || "", {
-    expiresIn: `${accessTokenExpire}s`, // Set expiration to 10 days
-  });
+  const accessTokenExpire = process.env.ACCESS_TOKEN_EXPIRES || "864000"; // 10 days
+  return jwt.sign(
+    { id: this._id, role: this.role }, // Include role in token payload
+    process.env.JWT_SECRET || "",
+    { expiresIn: `${accessTokenExpire}s` }
+  );
 };
 
 // Sign refresh token

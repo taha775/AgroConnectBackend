@@ -6,6 +6,7 @@ import ErrorHandler  from "../utils/errorHandler.js";
 import sendToken from "../middleware/jwt.js"
 import { Shop } from "../models/shopSchema.js";
 import bcrypt from "bcrypt"
+import FarmerProfile from "../models/farmerProfileSchema.js";
 
 // Registration function with role validation
 export const registrationUser = catchAsyncErrors(async (req, res, next) => {
@@ -275,6 +276,95 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid token", 401));
   }
 });
+
+
+
+export const hireFarmer = catchAsyncErrors(async (req, res, next) => {
+  const { farmerId } = req.params;
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
+
+  if (!token) {
+    return next(new ErrorHandler("No token provided, authorization denied", 401));
+  }
+
+  // Verify the token
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return next(new ErrorHandler("Invalid or expired token", 403));
+  }
+
+  const userId = decoded.id;
+
+  // Check if the farmer exists
+  const farmer = await FarmerProfile.findById(farmerId).populate("user", "name email"); // Populate the user field
+
+  if (!farmer) {
+    return next(new ErrorHandler("Farmer not found", 404));
+  }
+
+  // Check if the user has already hired the farmer (optional)
+  const user = await userModel.findById(userId);
+
+  if (user.hiredFarmers.includes(farmerId)) {
+    return next(new ErrorHandler("You have already hired this farmer", 400));
+  }
+
+  // Add farmer to the user's hiredFarmers list
+  user.hiredFarmers.push(farmerId);
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: `Farmer ${farmer.user.name} hired successfully`,
+    hiredFarmers: user.hiredFarmers,
+    farmerData: farmer.user,  // Include the hired farmer's name and email
+  });
+});
+
+
+
+
+export const getHiredFarmers = catchAsyncErrors(async (req, res, next) => {
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Get token from headers
+
+  if (!token) {
+    return next(new ErrorHandler("No token provided, authorization denied", 401));
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify the token using the JWT_SECRET
+  } catch (err) {
+    return next(new ErrorHandler("Invalid or expired token", 403));
+  }
+
+  const userId = decoded.id; // Get the user ID from the decoded token
+
+  // Find the user and populate the hiredFarmers field with details from FarmerProfile model
+  const user = await userModel.findById(userId).populate({
+    path: 'hiredFarmers', // Populate the hiredFarmers array
+    populate: {
+      path: 'user', // Populate the user details from FarmerProfile
+      select: 'name email', // Select only the necessary fields (name, email)
+    }
+  });
+
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Hired farmers retrieved successfully",
+    hiredFarmers: user.hiredFarmers, // This will contain the populated data for hired farmers
+  });
+});
+
+
+
+
 
 
 
