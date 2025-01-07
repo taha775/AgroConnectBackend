@@ -314,12 +314,15 @@ export const hireFarmer = catchAsyncErrors(async (req, res, next) => {
   // Add farmer to the user's hiredFarmers list
   user.hiredFarmers.push(farmerId);
   await user.save();
+  farmer.hiredBy.push(userId)
+  farmer.save()
 
   res.status(200).json({
     success: true,
     message: `Farmer ${farmer.user.name} hired successfully`,
     hiredFarmers: user.hiredFarmers,
-    farmerData: farmer.user,  // Include the hired farmer's name and email
+    farmerData: farmer.user,
+
   });
 });
 

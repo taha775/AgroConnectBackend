@@ -65,60 +65,19 @@ export const getFarmerProfileById = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   const decoded = verifyToken(token);
 
-  const profile = await FarmerProfile.findOne({ _id: farmerId }).populate("user", "name email");
+  const profile = await FarmerProfile.findOne({ _id: farmerId })
+    .populate("user", "name email") // Populate the farmer's user details
+    .populate("hiredBy", "name email"); // Populate the hiredBy field with user details
 
   if (!profile) {
     return next(new ErrorHandler("Farmer profile not found", 404));
   }
 
-  res.status(200).json({ message: "Farmer profile retrieved successfully", profile });
-});
-
-// Hire a farmer
-export const hireFarmer = catchAsyncErrors(async (req, res, next) => {
-  const { farmerId } = req.params;
-  const token = req.headers.authorization?.split(" ")[1];
-  const decoded = verifyToken(token);
-
-  const userId = decoded.id;
-
-  // Check if the farmer exists
-  const farmer = await FarmerProfile.findById(farmerId);
-  if (!farmer) {
-    return next(new ErrorHandler("Farmer not found", 404));
-  }
-
-  // Update user's hiredFarmers list
-  const user = await userModel.findById(userId);
-  if (user.hiredFarmers.includes(farmerId)) {
-    return next(new ErrorHandler("You have already hired this farmer", 400));
-  }
-
-  user.hiredFarmers.push(farmerId);
-  await user.save();
-
   res.status(200).json({
-    success: true,
-    message: `Farmer ${farmer.user.name} hired successfully`,
-    hiredFarmers: user.hiredFarmers,
+    message: "Farmer profile retrieved successfully",
+    profile,
   });
 });
 
-// Get hired farmers for the authenticated user
-export const getHiredFarmers = catchAsyncErrors(async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  const decoded = verifyToken(token);
 
-  const userId = decoded.id;
-  const user = await userModel.findById(userId).populate("hiredFarmers");
 
-  if (!user) {
-    return next(new ErrorHandler("User not found", 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Hired farmers retrieved successfully",
-    hiredFarmers: user.hiredFarmers,
-  });
-});
