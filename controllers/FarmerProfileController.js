@@ -19,8 +19,11 @@ const verifyToken = (token) => {
 };
 
 // Create or update a farmer profile
+
+
+
 export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, next) => {
-  const { skills, contactDetails, availability } = req.body;
+  const { profileImage, description, pricePerDay, pricePerMonth, contactDetails, availability } = req.body;
   const token = req.headers.authorization?.split(" ")[1];
 
   // Token validation and decoding
@@ -33,12 +36,15 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
     return next(new ErrorHandler("Only farmers can create or update profiles", 403));
   }
 
-  // Normalize skills if it is a string (add support for multiple skills in an array)
-  const formattedSkills = Array.isArray(skills)
-    ? skills
-    : [{ category: skills, experience: 0 }]; // Default experienceYears to 0 if not provided
-
-  const profileData = { user: userId, skills: formattedSkills, contactDetails, availability };
+  const profileData = {
+    user: userId,
+    profileImage,
+    description,
+    pricePerDay,
+    pricePerMonth,
+    contactDetails,
+    availability,
+  };
 
   const profile = await FarmerProfile.findOneAndUpdate(
     { user: userId },
@@ -48,6 +54,7 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
 
   res.status(200).json({ message: "Farmer profile created/updated successfully", profile });
 });
+
 
 // Get all farmer profiles that are available for hire
 export const getAllFarmerProfiles = catchAsyncErrors(async (req, res, next) => {

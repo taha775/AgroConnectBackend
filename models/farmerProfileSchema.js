@@ -8,13 +8,22 @@ const farmerProfileSchema = new mongoose.Schema(
       required: true, // Link to the User model
       unique: true, // Ensure one profile per user
     },
-    skills: [
-      {
-        category: { type: String, required: true }, // Example: "Onions", "Potatoes"
-        experience: { type: Number, required: true }, // Years of experience
-        description: { type: String, required: false }, // Optional description of expertise
-      },
-    ],
+    profileImage: {
+      type: String, // URL of the profile image
+      required: false,
+    },
+    description: {
+      type: String, // Farmer's description or bio
+      required: false,
+    },
+    pricePerDay: {
+      type: Number, // Daily rate
+      required: false,
+    },
+    pricePerMonth: {
+      type: Number, // Monthly rate
+      required: false,
+    },
     contactDetails: {
       phone: { type: String, required: false }, // Optional phone number
       address: { type: String, required: false }, // Optional address
@@ -24,11 +33,11 @@ const farmerProfileSchema = new mongoose.Schema(
       default: true, // Indicates whether the farmer is available for hire
     },
     hiredBy: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User", // Users who hired the farmer
-        }
-      ]
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User", // Users who hired the farmer
+      },
+    ],
   },
   { timestamps: true } // Automatically add createdAt and updatedAt fields
 );

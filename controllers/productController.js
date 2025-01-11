@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 
 import { Product } from '../models/productSchema.js';
 import { Shop } from '../models/shopSchema.js';
+import User from "../models/userSchema.js"
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import ErrorHandler from '../utils/errorHandler.js';
 
@@ -62,7 +63,10 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
     console.error("Error in createProduct:", error);
     return next(new ErrorHandler("Invalid token or token expired", 401));
   }
-});
+})
+
+
+
 
 
 
@@ -135,11 +139,41 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   
 
 
+export const getAllProducts = catchAsyncErrors(async (req, res, next) => {
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
 
+  if (!token) {
+    return next(new ErrorHandler("No token provided, unable to fetch products", 401));
+  }
 
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // Check if the user exists
+    const user = await User.findById(decoded.id); // Replace `User` with your actual user model
+    if (!user) {
+      return next(new ErrorHandler("User not found or token is invalid", 401));
+    }
 
-  
+    // Fetch all products
+    const products = await Product.find();
+
+    res.status(200).json({
+      success: true,
+      products,
+    });
+  } catch (error) {
+    if (error.name === "TokenExpiredError") {
+      return next(new ErrorHandler("Token expired, please login again", 401));
+    }
+    if (error.name === "JsonWebTokenError") {
+      return next(new ErrorHandler("Invalid token", 401));
+    }
+    console.error("Error in getAllProducts:", error);
+    return next(new ErrorHandler("Error fetching products", 500));
+  }
+});
 
 
 
