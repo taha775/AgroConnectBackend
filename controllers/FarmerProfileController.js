@@ -28,13 +28,21 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
 
   // Token validation and decoding
   const decoded = verifyToken(token);
-
   const userId = decoded.id;
 
   // Check if the user is a farmer
   if (decoded.role !== "farmer") {
     return next(new ErrorHandler("Only farmers can create or update profiles", 403));
   }
+
+  // Determine profile completeness
+  const isCompleteProfile =
+    profileImage &&
+    description &&
+    pricePerDay !== undefined &&
+    pricePerMonth !== undefined &&
+    contactDetails?.phone &&
+    contactDetails?.address;
 
   const profileData = {
     user: userId,
@@ -44,6 +52,7 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
     pricePerMonth,
     contactDetails,
     availability,
+    completeProfile: !!isCompleteProfile, // Convert to boolean
   };
 
   const profile = await FarmerProfile.findOneAndUpdate(
@@ -54,6 +63,7 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
 
   res.status(200).json({ message: "Farmer profile created/updated successfully", profile });
 });
+
 
 
 // Get all farmer profiles that are available for hire

@@ -38,6 +38,10 @@ const farmerProfileSchema = new mongoose.Schema(
         ref: "User", // Users who hired the farmer
       },
     ],
+    completeProfile: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true } // Automatically add createdAt and updatedAt fields
 );
