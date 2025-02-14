@@ -277,7 +277,15 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
       }
   
       // Find the product by its ID
-      const product = await Product.findById(productId); // Ensure the product belongs to the authenticated shop
+      const product = await Product.findById(productId)
+      .populate({
+        path: "reviews",
+        model: "Review", // Ensure Review model is referenced correctly
+      })
+      .populate({
+        path: "shop",
+        model: "Shop", // If you want to get shop details too
+      });
   
       if (!product) {
         return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));

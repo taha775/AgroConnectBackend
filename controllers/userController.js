@@ -7,6 +7,7 @@ import sendToken from "../middleware/jwt.js"
 import { Shop } from "../models/shopSchema.js";
 import bcrypt from "bcrypt"
 import FarmerProfile from "../models/farmerProfileSchema.js";
+import { clearScreenDown } from "readline";
 
 // Registration function with role validation
 export const registrationUser = catchAsyncErrors(async (req, res, next) => {
