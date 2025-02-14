@@ -9,8 +9,14 @@ const farmerProfileSchema = new mongoose.Schema(
       unique: true, // Ensure one profile per user
     },
     profileImage: {
-      type: String, // URL of the profile image
-      required: false,
+      public_id: {
+        type: String,
+        required: true,
+      },
+      url: {
+        type: String,
+        required: true,
+      },
     },
     description: {
       type: String, // Farmer's description or bio

@@ -7,7 +7,15 @@ import sendToken from "../middleware/jwt.js"
 import { Shop } from "../models/shopSchema.js";
 import bcrypt from "bcrypt"
 import FarmerProfile from "../models/farmerProfileSchema.js";
-import { clearScreenDown } from "readline";
+import cloudinary from "cloudinary";
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 
 // Registration function with role validation
 export const registrationUser = catchAsyncErrors(async (req, res, next) => {
@@ -154,6 +162,7 @@ export const LoginUser = catchAsyncErrors(async (req, res, next) => {
           success: true,
           message: "Login successful",
           user,
+          avatar:user.avatar,
           token, // Send token in response
       });
 
@@ -163,8 +172,129 @@ export const LoginUser = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
+const verifyToken = (token) => {
+  if (!token) {
+    throw new Error("Please provide a token");
+  }
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    throw new Error("Invalid or expired token");
+  }
+  return decoded;
+}; 
+
+import fs from "fs"; // Import fs to handle file deletion
+
+export const updateProfile = catchAsyncErrors(async (req, res, next) => {
+  try {
+    const { name } = req.body;
+    const token = req.headers.authorization?.split(" ")[1];
+
+    const decoded = verifyToken(token);
+    const userId = decoded.id;
+
+    if (!userId) {
+      return next(new ErrorHandler("User ID is required", 400));
+    }
+
+    console.log("🔹 User ID:", userId);
+
+    // Fetch user from the database
+    let user = await userModel.findById(userId);
+    if (!user) {
+      return next(new ErrorHandler("User not found", 404));
+    }
+
+    let profileImage = user.avatar; // Default to existing avatar
+
+    // Check if a new profile image is provided
+    if (req.files?.profileImage) {
+      const uploadedImage = await cloudinary.uploader.upload(req.files.profileImage.tempFilePath, {
+        folder: "USER_PROFILE_IMAGES",
+      });
+
+      if (!uploadedImage || uploadedImage.error) {
+        console.error("Cloudinary Error:", uploadedImage.error || "Unknown error");
+        return next(new ErrorHandler("Error uploading profile image", 500));
+      }
+
+      profileImage = {
+        public_id: uploadedImage.public_id,
+        url: uploadedImage.secure_url,
+      };
+    }
+
+    // Update user profile in the database
+    user = await userModel.findOneAndUpdate(
+      { _id: userId }, // Find user by ID
+      {
+        $set: {
+          name: name || user.name,
+          avatar: profileImage,
+        },
+      },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user,
+      avatar: user.avatar, // Ensure avatar is included in response
+    });
+
+  } catch (error) {
+    console.error("❌ Error updating profile:", error);
+    return next(new ErrorHandler(error.message, 500));
+  }
+});
 
 
+
+
+export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
+  try {
+    // Fetch all users, excluding the password field for security
+    const users = await userModel.find().select("-password");
+
+    if (!users || users.length === 0) {
+      return next(new ErrorHandler("No users found", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+
+  } catch (error) {
+    return next(new ErrorHandler(error.message, 500));
+  }
+});
+
+
+// Get specific user profile by ID
+export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
+  try {
+    const userId = req.params.id; // Get user ID from request params
+
+    const user = await userModel.findById(userId).select("-password"); // Exclude password field
+
+    if (!user) {
+      return next(new ErrorHandler("User not found", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      user,
+    });
+
+  } catch (error) {
+    return next(new ErrorHandler(error.message, 500));
+  }
+});
 
 
 

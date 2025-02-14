@@ -11,11 +11,18 @@ import cartRouter  from "./routers/cartRouter.js"
 import orderRouter from "./routers/orderRouter.js"
 import reviewRouter from './routers/reviewRouter.js';
 import farmerRouter from "./routers/farmerRouter.js"
+import fileUpload from 'express-fileupload';
 
 const app = express();
 
 // Load environment variables from .env file
 dotenv.config();
+
+app.use(fileUpload({
+  useTempFiles: true,
+  tempFileDir: "/tmp/"
+}));
+
 
 // Middleware to parse JSON data
 app.use(express.json());

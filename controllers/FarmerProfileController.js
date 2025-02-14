@@ -3,6 +3,15 @@ import userModel from "../models/userSchema.js"; // Assuming userModel is import
 import ErrorHandler from "../utils/errorHandler.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt from "jsonwebtoken";
+import cloudinary from "cloudinary";
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 
 // Middleware to verify and decode the token
 const verifyToken = (token) => {
@@ -23,7 +32,7 @@ const verifyToken = (token) => {
 
 
 export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, next) => {
-  const { profileImage, description, pricePerDay, pricePerMonth, contactDetails, availability } = req.body;
+  const { description, pricePerDay, pricePerMonth, contactDetails, availability } = req.body;
   const token = req.headers.authorization?.split(" ")[1];
 
   // Token validation and decoding
@@ -33,6 +42,25 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
   // Check if the user is a farmer
   if (decoded.role !== "farmer") {
     return next(new ErrorHandler("Only farmers can create or update profiles", 403));
+  }
+
+  let profileImage = null;
+
+  // Check if profile image is provided
+  if (req.files?.profileImage) {
+    const uploadedImage = await cloudinary.uploader.upload(req.files.profileImage.tempFilePath, {
+      folder: "FARMER_PROFILE_IMAGES",
+    });
+
+    if (!uploadedImage || uploadedImage.error) {
+      console.error("Cloudinary Error:", uploadedImage.error || "Unknown error");
+      return next(new ErrorHandler("Error uploading profile image", 500));
+    }
+
+    profileImage = {
+      public_id: uploadedImage.public_id,
+      url: uploadedImage.secure_url,
+    };
   }
 
   // Determine profile completeness
