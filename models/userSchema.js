@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
       minlength: [6, "Password must be at least 6 characters long"],
       select: false, // Don't return the password field by default
     },
-    avatar: {
+    profileImage: {
       public_id: {
         type: String,
         required: false,

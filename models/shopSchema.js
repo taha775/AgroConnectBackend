@@ -20,6 +20,16 @@ const shopSchema = new mongoose.Schema(
       required: [true, "Please set a password for the shop"],
       select: false,
     },
+    shop_img: {
+      public_id: {
+        type: String,
+        required: false,
+      },
+      url: {
+        type: String,
+        required: false,
+      },
+    },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

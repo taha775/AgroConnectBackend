@@ -21,9 +21,20 @@ const productSchema = new mongoose.Schema(
       default: 0,
       min: 0, // Prevent negative stock
     },
-    image: {
+    category: {
       type: String,
-      required: [true, "Please upload an image for the product"],
+      enum: ["seed", "cropprotection"],
+      default: "seed",
+    },
+    productImage: {
+      public_id: {
+        type: String,
+        required: true,
+      },
+      url: {
+        type: String,
+        required: true,
+      },
     },
     shop: {
       type: mongoose.Schema.Types.ObjectId,

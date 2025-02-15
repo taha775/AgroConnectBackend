@@ -1,55 +1,82 @@
 import jwt from 'jsonwebtoken';
 
 
-
 import { Product } from '../models/productSchema.js';
 import { Shop } from '../models/shopSchema.js';
 import User from "../models/userSchema.js"
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import ErrorHandler from '../utils/errorHandler.js';
+import cloudinary from "cloudinary";
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 
 export const createProduct = catchAsyncErrors(async (req, res, next) => {
-  const { name, description, price, stock, image } = req.body;
+  const { name, description, price, stock, category } = req.body;
 
-  // Validate inputs
-  if (!name || !description || !price || !stock || !image) {
+  // Validate inputs (except image, which will be checked separately)
+  if (!name || !description || !price || !stock || !category) {
     return next(new ErrorHandler("Please provide all required fields", 400));
   }
 
   // Check for the token in the Authorization header (Bearer token)
-  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return next(new ErrorHandler("No token provided, product creation not allowed", 401));
   }
 
   try {
-    // Verify the token using the shop's secret
+    // Verify the token using JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log(decoded.id, "Decoded Token");
 
-    // Find the shop by ID from the decoded token data
-    const shop = await Shop.findOne({owner:decoded.id});
-    console.log(shop)
+    // Find the shop by ID from the decoded token
+    const shop = await Shop.findOne({ owner: decoded.id });
     if (!shop) {
       return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
 
-    // Create the new product and link it to the shop
+    // Check if an image is provided
+    if (!req.files || !req.files.productImage) {
+      return next(new ErrorHandler("Please upload a product image", 400));
+    }
+
+    // Upload image to Cloudinary
+    const uploadedImage = await cloudinary.uploader.upload(req.files.productImage.tempFilePath, {
+      folder: "PRODUCT_IMAGES",
+    });
+
+    console.log("Cloudinary Response:", uploadedImage);
+
+    if (!uploadedImage || uploadedImage.error) {
+      return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+    }
+
+    // Create the new product with the uploaded image
     const newProduct = new Product({
       name,
       description,
       price,
       stock,
-      image,
-      shop: shop._id,  // Linking product to the shop
+      category,
+      shop: shop._id,
+      productImage: {
+        public_id: uploadedImage.public_id,
+        url: uploadedImage.secure_url,
+      },
     });
 
     // Save the new product
     await newProduct.save();
 
     // Add this product to the shop's product list (optional)
-    shop.products.push(newProduct._id); // Adding the product to the shop's products array
+    shop.products.push(newProduct._id);
     await shop.save();
 
     // Respond with success message
@@ -63,7 +90,7 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
     console.error("Error in createProduct:", error);
     return next(new ErrorHandler("Invalid token or token expired", 401));
   }
-})
+});
 
 
 

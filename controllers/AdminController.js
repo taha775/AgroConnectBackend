@@ -2,6 +2,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/AdminSchema.js';
+import userModel from '../models/userSchema.js';
+import ErrorHandler from '../utils/errorHandler.js';
+import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
@@ -45,3 +48,52 @@ export const loginAdmin = async (req, res) => {
         res.status(500).json({ error: 'Error logging in admin: ' + error.message });
     }
 };
+
+
+
+export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
+    console.log("Sds")
+    try {
+        // Fetch users where role is "user", excluding the password field
+        const users = await userModel.find({ role: "user" }).select("-password");
+
+        if (!users || users.length === 0) {
+            return next(new ErrorHandler("No users found", 404));
+        }
+
+        res.status(200).json({
+            success: true,
+            count: users.length,
+            users,
+        });
+
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+
+export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
+    try {
+        console.log("first");
+        const userId = req.params.id; // Get user ID from request params
+        console.log(userId);
+
+        // Find user by ID and populate shops
+        const user = await userModel.findById(userId)
+            .select("-password")  // Exclude password
+            .populate("shops");   // Populate shops
+
+        if (!user) {
+            return next(new ErrorHandler("User not found", 404));
+        }
+
+        res.status(200).json({
+            success: true,
+            user,
+        });
+
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});

@@ -189,17 +189,20 @@ import fs from "fs"; // Import fs to handle file deletion
 
 export const updateProfile = catchAsyncErrors(async (req, res, next) => {
   try {
-    const { name } = req.body;
     const token = req.headers.authorization?.split(" ")[1];
 
-    const decoded = verifyToken(token);
-    const userId = decoded.id;
-
-    if (!userId) {
-      return next(new ErrorHandler("User ID is required", 400));
+    // Token validation and decoding
+    if (!token) {
+      return next(new ErrorHandler("Please provide a token", 400));
     }
 
-    console.log("🔹 User ID:", userId);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return next(new ErrorHandler("Invalid token", 401));
+    }
+    const userId = decoded.id;
 
     // Fetch user from the database
     let user = await userModel.findById(userId);
@@ -207,42 +210,39 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
       return next(new ErrorHandler("User not found", 404));
     }
 
-    let profileImage = user.avatar; // Default to existing avatar
+    // Log files to ensure profile image is being sent
+    console.log("Received Files:", req.files);
 
     // Check if a new profile image is provided
-    if (req.files?.profileImage) {
-      const uploadedImage = await cloudinary.uploader.upload(req.files.profileImage.tempFilePath, {
-        folder: "USER_PROFILE_IMAGES",
-      });
-
-      if (!uploadedImage || uploadedImage.error) {
-        console.error("Cloudinary Error:", uploadedImage.error || "Unknown error");
-        return next(new ErrorHandler("Error uploading profile image", 500));
-      }
-
-      profileImage = {
-        public_id: uploadedImage.public_id,
-        url: uploadedImage.secure_url,
-      };
+    if (!req.files || !req.files.profileImage) {
+      return next(new ErrorHandler("Please provide an image file", 400));
     }
 
-    // Update user profile in the database
-    user = await userModel.findOneAndUpdate(
-      { _id: userId }, // Find user by ID
-      {
-        $set: {
-          name: name || user.name,
-          avatar: profileImage,
-        },
-      },
-      { new: true, runValidators: true }
-    );
+    // Upload image to Cloudinary
+    const uploadedImage = await cloudinary.uploader.upload(req.files.profileImage.tempFilePath, {
+      folder: "USER_PROFILE_IMAGES",
+    });
+
+    console.log("Cloudinary Response:", uploadedImage);
+
+    if (!uploadedImage || uploadedImage.error) {
+      return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+    }
+
+    // Update user avatar field
+    user.profileImage = {
+      public_id: uploadedImage.public_id,
+      url: uploadedImage.secure_url,
+    };
+    
+    // Save updated user profile
+    await user.save();
 
     res.status(200).json({
       success: true,
-      message: "Profile updated successfully",
+      message: "Profile image updated successfully",
       user,
-      avatar: user.avatar, // Ensure avatar is included in response
+      avatar: user.avatar, // Ensure avatar is included in the response
     });
 
   } catch (error) {
@@ -393,11 +393,7 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "Shop logged in successfully",
-      shop: {
-        name: shop.name,
-        shop_code: shop.shop_code,
-        owner: shop.owner,
-      },
+      shop
     });
   } catch (error) {
     console.error("Error in loginShop:", error); // Log the error for debugging
@@ -407,6 +403,43 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("Invalid token", 401));
   }
 });
+
+
+export const getAllShopsWithProducts = catchAsyncErrors(async (req, res, next) => {
+  try {
+    const shops = await Shop.find().populate("products");
+
+    if (!shops || shops.length === 0) {
+      return next(new ErrorHandler("No shops found", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      shops,
+    });
+  } catch (error) {
+    return next(new ErrorHandler("Error fetching shops", 500));
+  }
+});
+
+export const getShopById = catchAsyncErrors(async (req, res, next) => {
+  try {
+    const shop = await Shop.findById(req.params.id).populate("products");
+
+    if (!shop) {
+      return next(new ErrorHandler("Shop not found", 404));
+    }
+
+    res.status(200).json({
+      success: true,
+      shop,
+    });
+  } catch (error) {
+    return next(new ErrorHandler("Error fetching shop details", 500));
+  }
+});
+
+
 
 
 

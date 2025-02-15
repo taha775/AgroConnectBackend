@@ -1,5 +1,6 @@
 import express from 'express';
 import { activateUser, createShop, hireFarmer, loginShop, LoginUser, registrationUser,getHiredFarmers, updateProfile, getAllUsers, getUserProfile } from '../controllers/userController.js';
+import { uploadShopImage } from '../controllers/shopController.js';
 
 
 
@@ -15,7 +16,8 @@ router.post("/hireFarmer/:farmerId", hireFarmer);
 router.get("/gethiredfarmers", getHiredFarmers);
 router.put("/profileupdate", updateProfile);
 router.get("/getllusers", getAllUsers);
-router.get("/userprofile", getUserProfile);
+router.get("/userprofile/:id", getUserProfile);
+router.put("/uploadshopimg/:shop_id", uploadShopImage);
 
 
 
