@@ -26,14 +26,18 @@ const productSchema = new mongoose.Schema(
       enum: ["seed", "cropprotection"],
       default: "seed",
     },
+    image: {
+      type: String,
+      // default: "seed",
+    },
     productImage: {
       public_id: {
         type: String,
-        required: true,
+        required: false,
       },
       url: {
         type: String,
-        required: true,
+        required: false,
       },
     },
     shop: {
