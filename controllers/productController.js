@@ -7,6 +7,7 @@ import User from "../models/userSchema.js"
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import cloudinary from "cloudinary";
+import Admin from '../models/AdminSchema.js';
 
 
 cloudinary.config({
@@ -178,13 +179,15 @@ export const getAllProducts = catchAsyncErrors(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Check if the user exists
-    const user = await User.findById(decoded.id); // Replace `User` with your actual user model
-    if (!user) {
-      return next(new ErrorHandler("User not found or token is invalid", 401));
+    const user = await User.findById(decoded.id); 
+    const admin = !user ? await Admin.findById(decoded.id) : null;
+
+    if (!user && !admin) {
+      return next(new ErrorHandler("Only admin and user are allowed, token is invalid", 401));
     }
 
-    // Fetch all products
-    const products = await Product.find();
+    // Fetch all products and populate the shop field
+    const products = await Product.find().populate('shop');
 
     res.status(200).json({
       success: true,

@@ -5,6 +5,7 @@ import Admin from '../models/AdminSchema.js';
 import userModel from '../models/userSchema.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
+import { Shop } from '../models/shopSchema.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
@@ -97,3 +98,45 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler(error.message, 500));
     }
 });
+
+
+
+export const approveShop = catchAsyncErrors(async (req, res, next) => {
+    const { shopId } = req.params;
+    const approved = req.body
+    console.log(approved)
+  
+    // Get the token from the headers (assuming it is sent in the Authorization header as "Bearer <token>")
+ 
+  
+    try {
+      // Verify the token
+      
+  
+      // Find the user by decoded token ID
+ 
+  
+      // Verify if the user is an admin
+    
+  
+      // Find the shop by ID and update the approval status
+      const shop = await Shop.findByIdAndUpdate(
+        shopId,
+       approved,
+        
+      );
+  
+      if (!shop) {
+        return next(new ErrorHandler("Shop not found", 404));
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: "Shop approved successfully",
+        shop,
+      });
+    } catch (error) {
+      return next(new ErrorHandler("Invalid token", 401));
+    }
+  });
+  

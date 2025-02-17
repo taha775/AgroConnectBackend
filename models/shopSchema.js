@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 
 dotenv.config();
+
 // Shop Schema
 const shopSchema = new mongoose.Schema(
   {
@@ -35,10 +36,24 @@ const shopSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    block: {
+      type: Boolean,
+      default: false,
+    },
+    approve: {
+      type: Boolean,
+      default: false,
+    },
     products: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",  // Reference to Product schema
+        ref: "Product",
+      },
+    ],
+    orders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
       },
     ],
   },

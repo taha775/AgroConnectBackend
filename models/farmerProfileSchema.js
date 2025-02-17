@@ -20,19 +20,19 @@ const farmerProfileSchema = new mongoose.Schema(
     },
     description: {
       type: String, // Farmer's description or bio
-      required: false,
+      required: true,
     },
     pricePerDay: {
       type: Number, // Daily rate
-      required: false,
+      required: true,
     },
     pricePerMonth: {
       type: Number, // Monthly rate
-      required: false,
+      required: true,
     },
     contactDetails: {
-      phone: { type: String, required: false }, // Optional phone number
-      address: { type: String, required: false }, // Optional address
+      phone: { type: String, required: true }, // Optional phone number
+      address: { type: String, required: true }, // Optional address
     },
     availability: {
       type: Boolean,

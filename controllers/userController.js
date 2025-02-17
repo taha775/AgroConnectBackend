@@ -280,7 +280,14 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
   try {
     const userId = req.params.id; // Get user ID from request params
 
-    const user = await userModel.findById(userId).select("-password"); // Exclude password field
+    const user = await userModel.findById(userId)
+      .select("-password") // Exclude password field
+      .populate({
+        path: 'hiredFarmers',
+        populate: {
+          path: 'user', // If farmers reference a user document
+        },
+      }); // Populate hired farmers
 
     if (!user) {
       return next(new ErrorHandler("User not found", 404));
@@ -290,7 +297,6 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
       success: true,
       user,
     });
-
   } catch (error) {
     return next(new ErrorHandler(error.message, 500));
   }
@@ -531,6 +537,37 @@ export const getHiredFarmers = catchAsyncErrors(async (req, res, next) => {
 
 
 
+
+
+
+
+
+export const getHiredFarmersByUserId = catchAsyncErrors(async (req, res, next) => {
+  const { user_id } = req.params; // Get user_id from request body
+
+  if (!user_id) {
+    return next(new ErrorHandler("User ID is required", 400));
+  }
+
+  // Find the user and populate the hiredFarmers field with details from the FarmerProfile model
+  const user = await userModel.findById(user_id).populate({
+    path: 'hiredFarmers', // Populate the hiredFarmers array
+    populate: {
+      path: 'user', // Populate the user details from FarmerProfile
+      select: 'name email', // Select only the necessary fields (name, email)
+    }
+  });
+
+  if (!user) {
+    return next(new ErrorHandler("User not found", 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Hired farmers retrieved successfully",
+    hiredFarmers: user.hiredFarmers, // This will contain the populated data for hired farmers
+  });
+});
 
 
 

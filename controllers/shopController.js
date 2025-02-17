@@ -79,3 +79,28 @@ export const uploadShopImage = catchAsyncErrors(async (req, res, next) => {
     },
   });
 });
+
+
+
+
+
+export const getStoreOrders = catchAsyncErrors(async (req, res, next) => {
+  const { storeId } = req.params;
+
+  const store = await Shop.findById(storeId).populate({
+    path: 'orders',
+    populate: {
+      path: 'cartItems.productId',
+      select: 'name price',
+    },
+  });
+
+  if (!store) {
+    return next(new ErrorHandler("Store not found", 404));
+  }
+
+  res.status(200).json({ orders: store.orders });
+});
+
+
+

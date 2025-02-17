@@ -53,20 +53,23 @@ export const getProductReviews = async (req, res) => {
   const { productId } = req.params;
 
   try {
-    const reviews = await Review.find({ productId }).populate(
-      "userId",
-      "name email"
-    );
+    // Find reviews for the given productId and populate the userId field with 'name' and 'email'
+    const reviews = await Review.find({ productId })
+      .populate('userId', 'name email') // Populating userId field with name and email
+      .exec();
 
     if (!reviews.length) {
       return res.status(404).json({ message: "No reviews found for this product" });
     }
 
+    // Return reviews along with the populated user data
     res.status(200).json({ reviews });
   } catch (error) {
+    console.error('Error fetching reviews:', error);
     res.status(500).json({ message: "Something went wrong", error });
   }
 };
+
 
 // Delete a review
 export const deleteReview = async (req, res) => {

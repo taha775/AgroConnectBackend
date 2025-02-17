@@ -30,68 +30,83 @@ const verifyToken = (token) => {
 // Create or update a farmer profile
 
 
-
 export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, next) => {
-  const { description, pricePerDay, pricePerMonth, contactDetails, availability } = req.body;
-  const token = req.headers.authorization?.split(" ")[1];
+  try {
+    const { description, pricePerDay, pricePerMonth, availability } = req.body;
 
-  // Token validation and decoding
-  const decoded = verifyToken(token);
-  const userId = decoded.id;
+    // Extract contact details properly
+    const contactDetails = {
+      phone: req.body["contactDetails[phone]"] || "",
+      address: req.body["contactDetails[address]"] || "",
+    };
 
-  // Check if the user is a farmer
-  if (decoded.role !== "farmer") {
-    return next(new ErrorHandler("Only farmers can create or update profiles", 403));
-  }
-
-  let profileImage = null;
-
-  // Check if profile image is provided
-  if (req.files?.profileImage) {
-    const uploadedImage = await cloudinary.uploader.upload(req.files.profileImage.tempFilePath, {
-      folder: "FARMER_PROFILE_IMAGES",
-    });
-
-    if (!uploadedImage || uploadedImage.error) {
-      console.error("Cloudinary Error:", uploadedImage.error || "Unknown error");
-      return next(new ErrorHandler("Error uploading profile image", 500));
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return next(new ErrorHandler("Unauthorized: No token provided", 401));
     }
 
-    profileImage = {
-      public_id: uploadedImage.public_id,
-      url: uploadedImage.secure_url,
+    // Token validation and decoding
+    const decoded = verifyToken(token);
+    const userId = decoded.id;
+
+    // Check if the user is a farmer
+    if (decoded.role !== "farmer") {
+      return next(new ErrorHandler("Only farmers can create or update profiles", 403));
+    }
+
+    let profileImage = null;
+
+    // Check if profile image is provided
+    if (req.files?.profileImage) {
+      const uploadedImage = await cloudinary.uploader.upload(req.files.profileImage.tempFilePath, {
+        folder: "FARMER_PROFILE_IMAGES",
+      });
+
+      if (!uploadedImage || uploadedImage.error) {
+        console.error("Cloudinary Error:", uploadedImage.error || "Unknown error");
+        return next(new ErrorHandler("Error uploading profile image", 500));
+      }
+
+      profileImage = {
+        public_id: uploadedImage.public_id,
+        url: uploadedImage.secure_url,
+      };
+    }
+
+    // Determine profile completeness
+    const isCompleteProfile =
+      profileImage &&
+      description &&
+      pricePerDay !== undefined &&
+      pricePerMonth !== undefined &&
+      contactDetails.phone &&
+      contactDetails.address;
+
+    // Prepare profile data
+    const profileData = {
+      user: userId,
+      profileImage,
+      description,
+      pricePerDay,
+      pricePerMonth,
+      contactDetails,
+      availability,
+      completeProfile: !!isCompleteProfile, // Convert to boolean
     };
+
+    // Create or update the farmer profile
+    const profile = await FarmerProfile.findOneAndUpdate(
+      { user: userId },
+      profileData,
+      { new: true, upsert: true } // Create new if not exists
+    );
+
+    res.status(200).json({ message: "Farmer profile created/updated successfully", profile });
+  } catch (error) {
+    console.error("Error in createOrUpdateFarmerProfile:", error);
+    next(error);
   }
-
-  // Determine profile completeness
-  const isCompleteProfile =
-    profileImage &&
-    description &&
-    pricePerDay !== undefined &&
-    pricePerMonth !== undefined &&
-    contactDetails?.phone &&
-    contactDetails?.address;
-
-  const profileData = {
-    user: userId,
-    profileImage,
-    description,
-    pricePerDay,
-    pricePerMonth,
-    contactDetails,
-    availability,
-    completeProfile: !!isCompleteProfile, // Convert to boolean
-  };
-
-  const profile = await FarmerProfile.findOneAndUpdate(
-    { user: userId },
-    profileData,
-    { new: true, upsert: true } // Create new if not exists
-  );
-
-  res.status(200).json({ message: "Farmer profile created/updated successfully", profile });
 });
-
 
 
 // Get all farmer profiles that are available for hire
