@@ -6,6 +6,7 @@ import userModel from '../models/userSchema.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import { Shop } from '../models/shopSchema.js';
+import { orderModel } from '../models/orderSchema.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
@@ -140,3 +141,97 @@ export const approveShop = catchAsyncErrors(async (req, res, next) => {
     }
   });
   
+
+
+
+
+
+
+
+
+
+
+// Get total users
+export const getTotalUsers = catchAsyncErrors(async (req, res, next) => {
+  const totalUsers = await userModel.countDocuments();
+
+  res.status(200).json({
+    success: true,
+    totalUsers,
+  });
+});
+
+// Get total orders
+export const getTotalOrders = catchAsyncErrors(async (req, res, next) => {
+  const totalOrders = await orderModel.countDocuments();
+
+  res.status(200).json({
+    success: true,
+    totalOrders,
+  });
+});
+
+// Get total shops
+export const getTotalShops = catchAsyncErrors(async (req, res, next) => {
+  const totalShops = await Shop.countDocuments();
+
+  res.status(200).json({
+    success: true,
+    totalShops,
+  });
+});
+
+// Get monthly orders and revenue
+export const getMonthlyOrdersAndRevenue = catchAsyncErrors(async (req, res, next) => {
+  const monthlyData = await orderModel.aggregate([
+    {
+      $group: {
+        _id: { $month: '$createdAt' },    // Group by month
+        totalOrders: { $sum: 1 },          // Count the total number of orders
+        totalRevenue: { $sum: '$totalAmount' }, // Sum the total revenue
+      },
+    },
+    { $sort: { _id: 1 } },   // Sort the results by month
+  ]);
+
+  // If totalRevenue is zero or undefined, we can apply a formula based on orders
+  monthlyData.forEach(month => {
+    if (!month.totalRevenue || month.totalRevenue === 0) {
+      // Assuming each order generates $50 in revenue
+      const orderRevenue = 50;
+      month.totalRevenue = month.totalOrders * orderRevenue; // Assign revenue based on total orders
+    }
+  });
+
+  res.status(200).json({
+    success: true,
+    monthlyData,
+  });
+});
+
+// Get revenue summary
+
+export const getTotalUsersAndFarmers = catchAsyncErrors(async (req, res, next) => {
+  try {
+    // Count total users and total farmers
+    const totalUsers = await userModel.countDocuments({ role: 'user' });
+    const totalFarmers = await userModel.countDocuments({ role: 'farmer' });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalUsers,
+        totalFarmers,
+      },
+    });
+  } catch (error) {
+    return next(new ErrorHandler(error.message, 500));
+  }
+});
+
+
+
+
+
+
+

@@ -18,7 +18,7 @@ cloudinary.config({
 
 
 export const createProduct = catchAsyncErrors(async (req, res, next) => {
-  const { name, description, price, stock, category } = req.body;
+  const { name, description, price, stock, category,image } = req.body;
 
   // Validate inputs (except image, which will be checked separately)
   if (!name || !description || !price || !stock || !category) {
@@ -44,20 +44,20 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
     }
 
     // Check if an image is provided
-    if (!req.files || !req.files.productImage) {
-      return next(new ErrorHandler("Please upload a product image", 400));
-    }
+    // if (!req.files || !req.files.productImage) {
+    //   return next(new ErrorHandler("Please upload a product image", 400));
+    // }
 
-    // Upload image to Cloudinary
-    const uploadedImage = await cloudinary.uploader.upload(req.files.productImage.tempFilePath, {
-      folder: "PRODUCT_IMAGES",
-    });
+    // // Upload image to Cloudinary
+    // const uploadedImage = await cloudinary.uploader.upload(req.files.productImage.tempFilePath, {
+    //   folder: "PRODUCT_IMAGES",
+    // });
 
-    console.log("Cloudinary Response:", uploadedImage);
+    // console.log("Cloudinary Response:", uploadedImage);
 
-    if (!uploadedImage || uploadedImage.error) {
-      return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
-    }
+    // if (!uploadedImage || uploadedImage.error) {
+    //   return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+    // }
 
     // Create the new product with the uploaded image
     const newProduct = new Product({
@@ -67,10 +67,11 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
       stock,
       category,
       shop: shop._id,
-      productImage: {
-        public_id: uploadedImage.public_id,
-        url: uploadedImage.secure_url,
-      },
+      image
+      // productImage: {
+      //   public_id: uploadedImage.public_id,
+      //   url: uploadedImage.secure_url,
+      // },
     });
 
     // Save the new product
@@ -100,7 +101,7 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
 
 export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   const { productId } = req.params;
-  const { name, description, price, stock, image } = req.body;
+  const { name, description, price, stock, category } = req.body;
 
   if (!productId) {
     return next(new ErrorHandler("Product ID is required", 400));
@@ -114,12 +115,11 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const shop = await Shop.findOne({owner:decoded.id});
+    const shop = await Shop.findOne({ owner: decoded.id });
 
     if (!shop) {
       return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
-
 
     const product = await Product.findOne({ _id: productId, shop: shop._id });
     if (!product) {
@@ -137,8 +137,33 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
       if (isNaN(stock)) return next(new ErrorHandler("Stock must be a number", 400));
       product.stock = stock;
     }
-    if (image) product.image = image;
+    if (category) product.category = category; // Make sure category is validated if necessary
 
+    // Update image (if provided)
+    if (req.files && req.files.productImage) {
+      // Upload new image to Cloudinary
+      const uploadedImage = await cloudinary.uploader.upload(req.files.productImage.tempFilePath, {
+        folder: "PRODUCT_IMAGES",
+      });
+
+      // Check if Cloudinary upload was successful
+      if (!uploadedImage || uploadedImage.error) {
+        return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+      }
+
+      // Delete old image from Cloudinary if the new image exists
+      if (product.productImage.public_id) {
+        await cloudinary.uploader.destroy(product.productImage.public_id);
+      }
+
+      // Update the image details in the product
+      product.productImage = {
+        public_id: uploadedImage.public_id,
+        url: uploadedImage.secure_url,
+      };
+    }
+
+    // Save updated product
     await product.save();
 
     res.status(200).json({
@@ -149,7 +174,8 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
         description: product.description,
         price: product.price,
         stock: product.stock,
-        image: product.image,
+        category: product.category,
+        image: product.productImage, // Returning the updated image info
       },
     });
   } catch (error) {
@@ -336,6 +362,63 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
       return next(new ErrorHandler("Error fetching product details", 500));
     }
   });
+  
+
+
+
+
+
+
+
+  export const getCategoryProductCounts = catchAsyncErrors(async (req, res, next) => {
+    const { category } = req.query; // Optional query param for filtering by category
+  
+    // Check for the token in the Authorization header (Bearer token)
+
+  
+    try {
+
+  
+      // Aggregation to get count of products by category (seed vs crop protection)
+      const categoryCounts = await Product.aggregate([
+        {
+          $project: {
+            category: { $ifNull: ["$category", "cropprotection"] }, // If category is null, set it as 'cropprotection'
+          },
+        },
+        {
+          $group: {
+            _id: "$category", // Group by category
+            count: { $sum: 1 }, // Sum the products per category
+          },
+        },
+      ]);
+  
+      // Optionally, you can filter by category from query if passed (seed or cropprotection)
+      if (category) {
+        const filteredCategoryCount = await Product.countDocuments({ category });
+        return res.status(200).json({
+          success: true,
+          filteredCategoryCount,
+        });
+      }
+  
+      // If no category is passed, return counts for both seed and crop protection
+      res.status(200).json({
+        success: true,
+        categoryCounts, // Returns the counts of 'seed' and 'cropprotection' products
+      });
+    } catch (error) {
+      console.error("Error fetching product category counts:", error);
+  
+      if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+        return next(new ErrorHandler("Invalid or expired token", 401));
+      }
+  
+      return next(new ErrorHandler("Error fetching product category counts", 500));
+    }
+  });
+  
   
   
 
