@@ -1,6 +1,6 @@
 import FarmerProfile from "../models/farmerProfileSchema.js";
 import userModel from "../models/userSchema.js"; // Assuming userModel is imported correctly
-import {ErrorHandler} from "../utils/ErrorHandler.js";
+import {errorHandler} from "../utils/errorHandler.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt from "jsonwebtoken";
 import cloudinary from "cloudinary";
@@ -42,7 +42,7 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
 
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
-      return next(new ErrorHandler("Unauthorized: No token provided", 401));
+      return next(new errorHandler("Unauthorized: No token provided", 401));
     }
 
     // Token validation and decoding
@@ -51,7 +51,7 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
 
     // Check if the user is a farmer
     if (decoded.role !== "farmer") {
-      return next(new ErrorHandler("Only farmers can create or update profiles", 403));
+      return next(new errorHandler("Only farmers can create or update profiles", 403));
     }
 
     let profileImage = null;
@@ -64,7 +64,7 @@ export const createOrUpdateFarmerProfile = catchAsyncErrors(async (req, res, nex
 
       if (!uploadedImage || uploadedImage.error) {
         console.error("Cloudinary Error:", uploadedImage.error || "Unknown error");
-        return next(new ErrorHandler("Error uploading profile image", 500));
+        return next(new errorHandler("Error uploading profile image", 500));
       }
 
       profileImage = {
@@ -130,7 +130,7 @@ export const getFarmerProfileById = catchAsyncErrors(async (req, res, next) => {
     .populate("hiredBy", "name email"); // Populate the hiredBy field with user details
 
   if (!profile) {
-    return next(new ErrorHandler("Farmer profile not found", 404));
+    return next(new errorHandler("Farmer profile not found", 404));
   }
 
   res.status(200).json({

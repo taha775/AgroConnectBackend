@@ -1,6 +1,6 @@
 import cloudinary from 'cloudinary';
 
-import {ErrorHandler} from '../utils/ErrorHandler.js'; // Assuming custom error handler
+import {errorHandler} from '../utils/errorHandler.js'; // Assuming custom error handler
 import {catchAsyncErrors} from '../middleware/catchAsyncErrors.js'; // Assuming custom catchAsyncErrors middleware
 import { Shop } from "../models/shopSchema.js";
 import jwt from "jsonwebtoken"
@@ -18,14 +18,14 @@ export const uploadShopImage = catchAsyncErrors(async (req, res, next) => {
 
   // Token validation and decoding
   if (!token) {
-    return next(new ErrorHandler("Please provide a token", 400));
+    return next(new errorHandler("Please provide a token", 400));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    return next(new ErrorHandler("Invalid token", 401));
+    return next(new errorHandler("Invalid token", 401));
   }
 
   const userId = decoded.id;
@@ -39,17 +39,17 @@ export const uploadShopImage = catchAsyncErrors(async (req, res, next) => {
   console.log("Shop Found:", shop);  
 
   if (!shop) {
-    return next(new ErrorHandler("Shop not found", 404));
+    return next(new errorHandler("Shop not found", 404));
   }
 
   // Check if the shop belongs to the logged-in user (optional)
   if (shop.owner.toString() !== userId) {
-    return next(new ErrorHandler("You are not authorized to upload an image for this shop", 403));
+    return next(new errorHandler("You are not authorized to upload an image for this shop", 403));
   }
 
   // Check if an image is provided
   if (!req.files || !req.files.shopImage) {
-    return next(new ErrorHandler("Please provide an image file", 400));
+    return next(new errorHandler("Please provide an image file", 400));
   }
 
   // Upload image to Cloudinary
@@ -58,7 +58,7 @@ export const uploadShopImage = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (uploadedImage.error) {
-    return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+    return next(new errorHandler("Error uploading image to Cloudinary", 500));
   }
 
   // Save the image details in the shop document
@@ -96,7 +96,7 @@ export const getStoreOrders = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (!store) {
-    return next(new ErrorHandler("Store not found", 404));
+    return next(new errorHandler("Store not found", 404));
   }
 
   res.status(200).json({ orders: store.orders });

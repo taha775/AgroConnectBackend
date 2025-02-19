@@ -3,10 +3,10 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/AdminSchema.js';
 import userModel from '../models/userSchema.js';
-import {ErrorHandler} from '../utils/ErrorHandler.js';
+import {errorHandler} from '../utils/errorHandler.js';
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import { Shop } from '../models/shopSchema.js';
-import { orderModel } from '../models/orderSchema.js';
+import { orderModel } from '../models/orderSchema.js'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 
@@ -60,7 +60,7 @@ export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
         const users = await userModel.find({ role: "user" }).select("-password");
 
         if (!users || users.length === 0) {
-            return next(new ErrorHandler("No users found", 404));
+            return next(new errorHandler("No users found", 404));
         }
 
         res.status(200).json({
@@ -70,7 +70,7 @@ export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
         });
 
     } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
+        return next(new errorHandler(error.message, 500));
     }
 });
 
@@ -87,7 +87,7 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
             .populate("shops");   // Populate shops
 
         if (!user) {
-            return next(new ErrorHandler("User not found", 404));
+            return next(new errorHandler("User not found", 404));
         }
 
         res.status(200).json({
@@ -96,7 +96,7 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
         });
 
     } catch (error) {
-        return next(new ErrorHandler(error.message, 500));
+        return next(new errorHandler(error.message, 500));
     }
 });
 
@@ -128,7 +128,7 @@ export const approveShop = catchAsyncErrors(async (req, res, next) => {
       );
   
       if (!shop) {
-        return next(new ErrorHandler("Shop not found", 404));
+        return next(new errorHandler("Shop not found", 404));
       }
   
       res.status(200).json({
@@ -137,7 +137,7 @@ export const approveShop = catchAsyncErrors(async (req, res, next) => {
         shop,
       });
     } catch (error) {
-      return next(new ErrorHandler("Invalid token", 401));
+      return next(new errorHandler("Invalid token", 401));
     }
   });
   
@@ -225,7 +225,7 @@ export const getTotalUsersAndFarmers = catchAsyncErrors(async (req, res, next) =
       },
     });
   } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
+    return next(new errorHandler(error.message, 500));
   }
 });
 

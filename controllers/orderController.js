@@ -1,6 +1,6 @@
 import { orderModel } from "../models/orderSchema.js";
 
-import {ErrorHandler} from "../utils/ErrorHandler.js";
+import {errorHandler} from "../utils/errorHandler.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt from 'jsonwebtoken';
 import { Product } from "../models/productSchema.js";
@@ -14,20 +14,20 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    return next(new ErrorHandler("Please provide a token", 400));
+    return next(new errorHandler("Please provide a token", 400));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return next(new ErrorHandler("Invalid or expired token", 403));
+    return next(new errorHandler("Invalid or expired token", 403));
   }
 
   const userId = decoded.id;
 
   if (!Array.isArray(items) || items.length === 0) {
-    return next(new ErrorHandler("No items provided for the order", 400));
+    return next(new errorHandler("No items provided for the order", 400));
   }
 
   // Validate each product and calculate the total
@@ -38,16 +38,16 @@ export const createOrder = catchAsyncErrors(async (req, res, next) => {
     const { productId, quantity } = item;
 
     if (!productId || quantity <= 0) {
-      return next(new ErrorHandler("Invalid product or quantity", 400));
+      return next(new errorHandler("Invalid product or quantity", 400));
     }
 
     const product = await Product.findById(productId).select("price stock name");
     if (!product) {
-      return next(new ErrorHandler(`Product with ID ${productId} not found`, 404));
+      return next(new errorHandler(`Product with ID ${productId} not found`, 404));
     }
 
     if (quantity > product.stock) {
-      return next(new ErrorHandler(`Insufficient stock for ${product.name}`, 400));
+      return next(new errorHandler(`Insufficient stock for ${product.name}`, 400));
     }
 
     // Deduct stock
@@ -87,7 +87,7 @@ export const updateOrder = catchAsyncErrors(async (req, res, next) => {
 
   const order = await orderModel.findById(orderId);
   if (!order) {
-    return next(new ErrorHandler("Order not found", 404));
+    return next(new errorHandler("Order not found", 404));
   }
 
   // Update payment and delivery status
@@ -111,14 +111,14 @@ export const getUserOrders = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    return next(new ErrorHandler("Please provide a token", 400));
+    return next(new errorHandler("Please provide a token", 400));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return next(new ErrorHandler("Invalid or expired token", 403));
+    return next(new errorHandler("Invalid or expired token", 403));
   }
 
   const userId = decoded.id;
@@ -152,7 +152,7 @@ export const getOrderById = catchAsyncErrors(async (req, res, next) => {
     .populate("cartItems.productId", "name price");
 
   if (!order) {
-    return next(new ErrorHandler("Order not found", 404));
+    return next(new errorHandler("Order not found", 404));
   }
 
   res.status(200).json({ message: "Order retrieved successfully", order });

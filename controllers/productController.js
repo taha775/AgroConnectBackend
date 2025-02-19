@@ -5,7 +5,7 @@ import { Product } from '../models/productSchema.js';
 import { Shop } from '../models/shopSchema.js';
 import User from "../models/userSchema.js"
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
-import {ErrorHandler} from '../utils/ErrorHandler.js';
+import {errorHandler} from '../utils/errorHandler.js';
 import cloudinary from "cloudinary";
 import Admin from '../models/AdminSchema.js';
 
@@ -22,14 +22,14 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
 
   // Validate inputs (except image, which will be checked separately)
   if (!name || !description || !price || !stock || !category) {
-    return next(new ErrorHandler("Please provide all required fields", 400));
+    return next(new errorHandler("Please provide all required fields", 400));
   }
 
   // Check for the token in the Authorization header (Bearer token)
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, product creation not allowed", 401));
+    return next(new errorHandler("No token provided, product creation not allowed", 401));
   }
 
   try {
@@ -40,12 +40,12 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
     // Find the shop by ID from the decoded token
     const shop = await Shop.findOne({ owner: decoded.id });
     if (!shop) {
-      return next(new ErrorHandler("Shop not found or token is invalid", 401));
+      return next(new errorHandler("Shop not found or token is invalid", 401));
     }
 
     // Check if an image is provided
     // if (!req.files || !req.files.productImage) {
-    //   return next(new ErrorHandler("Please upload a product image", 400));
+    //   return next(new errorHandler("Please upload a product image", 400));
     // }
 
     // // Upload image to Cloudinary
@@ -56,7 +56,7 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
     // console.log("Cloudinary Response:", uploadedImage);
 
     // if (!uploadedImage || uploadedImage.error) {
-    //   return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+    //   return next(new errorHandler("Error uploading image to Cloudinary", 500));
     // }
 
     // Create the new product with the uploaded image
@@ -86,7 +86,7 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
 
   } catch (error) {
     console.error("Error in createProduct:", error);
-    return next(new ErrorHandler("Invalid token or token expired", 401));
+    return next(new errorHandler("Invalid token or token expired", 401));
   }
 });
 
@@ -100,13 +100,13 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   const { name, description, price, stock, category,image } = req.body;
 
   if (!productId) {
-    return next(new ErrorHandler("Product ID is required", 400));
+    return next(new errorHandler("Product ID is required", 400));
   }
 
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, product update not allowed", 401));
+    return next(new errorHandler("No token provided, product update not allowed", 401));
   }
 
   try {
@@ -114,23 +114,23 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
     const shop = await Shop.findOne({ owner: decoded.id });
 
     if (!shop) {
-      return next(new ErrorHandler("Shop not found or token is invalid", 401));
+      return next(new errorHandler("Shop not found or token is invalid", 401));
     }
 
     const product = await Product.findOne({ _id: productId, shop: shop._id });
     if (!product) {
-      return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
+      return next(new errorHandler("Product not found or doesn't belong to this shop", 404));
     }
 
     // Update only provided fields
     if (name) product.name = name;
     if (description) product.description = description;
     if (price) {
-      if (isNaN(price)) return next(new ErrorHandler("Price must be a number", 400));
+      if (isNaN(price)) return next(new errorHandler("Price must be a number", 400));
       product.price = price;
     }
     if (stock) {
-      if (isNaN(stock)) return next(new ErrorHandler("Stock must be a number", 400));
+      if (isNaN(stock)) return next(new errorHandler("Stock must be a number", 400));
       product.stock = stock;
     }
     if (category) product.category = category; // Make sure category is validated if necessary
@@ -144,7 +144,7 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
 
     //   // Check if Cloudinary upload was successful
     //   if (!uploadedImage || uploadedImage.error) {
-    //     return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+    //     return next(new errorHandler("Error uploading image to Cloudinary", 500));
     //   }
 
       // Delete old image from Cloudinary if the new image exists
@@ -176,13 +176,13 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
     });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      return next(new ErrorHandler("Token expired, please login again", 401));
+      return next(new errorHandler("Token expired, please login again", 401));
     }
     if (error.name === "JsonWebTokenError") {
-      return next(new ErrorHandler("Invalid token", 401));
+      return next(new errorHandler("Invalid token", 401));
     }
     console.error("Error in updateProduct:", error);
-    return next(new ErrorHandler("Error updating product", 500));
+    return next(new errorHandler("Error updating product", 500));
   }
 });
 
@@ -193,7 +193,7 @@ export const getAllProducts = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, unable to fetch products", 401));
+    return next(new errorHandler("No token provided, unable to fetch products", 401));
   }
 
   try {
@@ -205,7 +205,7 @@ export const getAllProducts = catchAsyncErrors(async (req, res, next) => {
     const admin = !user ? await Admin.findById(decoded.id) : null;
 
     if (!user && !admin) {
-      return next(new ErrorHandler("Only admin and user are allowed, token is invalid", 401));
+      return next(new errorHandler("Only admin and user are allowed, token is invalid", 401));
     }
 
     // Fetch all products and populate the shop field
@@ -217,13 +217,13 @@ export const getAllProducts = catchAsyncErrors(async (req, res, next) => {
     });
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      return next(new ErrorHandler("Token expired, please login again", 401));
+      return next(new errorHandler("Token expired, please login again", 401));
     }
     if (error.name === "JsonWebTokenError") {
-      return next(new ErrorHandler("Invalid token", 401));
+      return next(new errorHandler("Invalid token", 401));
     }
     console.error("Error in getAllProducts:", error);
-    return next(new ErrorHandler("Error fetching products", 500));
+    return next(new errorHandler("Error fetching products", 500));
   }
 });
 
@@ -236,7 +236,7 @@ export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, product deletion not allowed", 401));
+    return next(new errorHandler("No token provided, product deletion not allowed", 401));
   }
 
   try {
@@ -247,13 +247,13 @@ export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
     // Find the shop by ID from the decoded token data
     const shop = await Shop.findOne({ owner: decoded.id });
     if (!shop) {
-      return next(new ErrorHandler("Shop not found or token is invalid", 401));
+      return next(new errorHandler("Shop not found or token is invalid", 401));
     }
 
     // Find the product by ID and ensure it's linked to the shop
     const product = await Product.findOne({ _id: productId, shop: shop._id });
     if (!product) {
-      return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
+      return next(new errorHandler("Product not found or doesn't belong to this shop", 404));
     }
 
     // Remove the product from the shop's product list
@@ -272,7 +272,7 @@ export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
     });
   } catch (error) {
     console.error("Error in deleteProduct:", error);
-    return next(new ErrorHandler("Invalid token or token expired", 401));
+    return next(new errorHandler("Invalid token or token expired", 401));
   }
 });
 
@@ -284,7 +284,7 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, unable to fetch products", 401));
+    return next(new errorHandler("No token provided, unable to fetch products", 401));
   }
 
   try {
@@ -295,7 +295,7 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
     // Find the shop by ID from the decoded token data
     const shop = await Shop.findOne({ owner: decoded.id }).populate('products');
     if (!shop) {
-      return next(new ErrorHandler("Shop not found or token is invalid", 401));
+      return next(new errorHandler("Shop not found or token is invalid", 401));
     }
 
     // Respond with the shop's products
@@ -306,7 +306,7 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
 
   } catch (error) {
     console.error("Error in getShopProducts:", error);
-    return next(new ErrorHandler("Invalid token or token expired", 401));
+    return next(new errorHandler("Invalid token or token expired", 401));
   }
 });
 
@@ -318,14 +318,14 @@ export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, unable to fetch product details", 401));
+    return next(new errorHandler("No token provided, unable to fetch product details", 401));
   }
 
   try {
 
 
     if (!productId) {
-      return next(new ErrorHandler("Product ID is required", 400));
+      return next(new errorHandler("Product ID is required", 400));
     }
 
     // Find the product by its ID
@@ -340,7 +340,7 @@ export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next
       });
   
       if (!product) {
-        return next(new ErrorHandler("Product not found or doesn't belong to this shop", 404));
+        return next(new errorHandler("Product not found or doesn't belong to this shop", 404));
       }
   
       // Respond with the product details
@@ -352,10 +352,10 @@ export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next
       console.error("Error fetching product details:", error);
   
       if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
-        return next(new ErrorHandler("Invalid or expired token", 401));
+        return next(new errorHandler("Invalid or expired token", 401));
       }
   
-      return next(new ErrorHandler("Error fetching product details", 500));
+      return next(new errorHandler("Error fetching product details", 500));
     }
   });
   
@@ -401,10 +401,10 @@ export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next
       console.error("Error fetching product category counts:", error);
   
       if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
-        return next(new ErrorHandler("Invalid or expired token", 401));
+        return next(new errorHandler("Invalid or expired token", 401));
       }
   
-      return next(new ErrorHandler("Error fetching product category counts", 500));
+      return next(new errorHandler("Error fetching product category counts", 500));
     }
   });
   

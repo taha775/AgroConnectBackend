@@ -1,7 +1,7 @@
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import { cartModel } from "../models/cartSchema.js";
 import { Product } from '../models/productSchema.js';
-import {ErrorHandler} from "../utils/ErrorHandler.js";
+import {errorHandler} from "../utils/errorHandler.js";
 import jwt from "jsonwebtoken";
 /**
  * Function to calculate the total price of the cart
@@ -24,25 +24,25 @@ export const addProductToCart = catchAsyncErrors(async (req, res, next) => {
 
   // Validate quantity
   if (quantity <= 0) {
-    return next(new ErrorHandler("Invalid quantity", 400));
+    return next(new errorHandler("Invalid quantity", 400));
   }
 
   // Find the product and its price
   const product = await Product.findById(productId).select("price name");
   if (!product) {
-    return next(new ErrorHandler("Product not found", 404));
+    return next(new errorHandler("Product not found", 404));
   }
 
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) {
-    return next(new ErrorHandler("Please provide a token", 400));
+    return next(new errorHandler("Please provide a token", 400));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return next(new ErrorHandler("Invalid or expired token", 403));
+    return next(new errorHandler("Invalid or expired token", 403));
   }
 
   const userId = decoded.id;
@@ -99,14 +99,14 @@ export const removeProductFromCart = catchAsyncErrors(async (req, res, next) => 
 
   // Validate token presence
   if (!token) {
-    return next(new ErrorHandler("Please provide a token", 400));
+    return next(new errorHandler("Please provide a token", 400));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return next(new ErrorHandler("Invalid or expired token", 403));
+    return next(new errorHandler("Invalid or expired token", 403));
   }
 
   const userId = decoded.id;
@@ -121,7 +121,7 @@ export const removeProductFromCart = catchAsyncErrors(async (req, res, next) => 
 
   // If no cart or product is found, return an error
   if (!cart) {
-    return next(new ErrorHandler("Cart or product not found", 404));
+    return next(new errorHandler("Cart or product not found", 404));
   }
 
   // Recalculate the cart's total price and apply any discounts if applicable
@@ -144,14 +144,14 @@ export const getAllCartItems = catchAsyncErrors(async (req, res, next) => {
 
   // Validate the token
   if (!token) {
-    return next(new ErrorHandler("Please provide a token", 400));
+    return next(new errorHandler("Please provide a token", 400));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return next(new ErrorHandler("Invalid or expired token", 403));
+    return next(new errorHandler("Invalid or expired token", 403));
   }
 
   const userId = decoded.id;
@@ -160,7 +160,7 @@ export const getAllCartItems = catchAsyncErrors(async (req, res, next) => {
   const cart = await cartModel.findOne({ userId });
 
   if (!cart) {
-    return next(new ErrorHandler("Cart is empty", 404));
+    return next(new errorHandler("Cart is empty", 404));
   }
 
   res.status(200).json({

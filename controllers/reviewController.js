@@ -1,7 +1,7 @@
 import { Product } from "../models/productSchema.js";
 import { Review } from "../models/reviewSchema.js";
 import jwt from "jsonwebtoken";
-import { ErrorHandler } from "../utils/ErrorHandler.js";
+import { errorHandler } from "../utils/errorHandler.js";
 
 
 // Create a review
@@ -10,7 +10,7 @@ export const createReview = async (req, res) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, product creation not allowed", 401));
+    return next(new errorHandler("No token provided, product creation not allowed", 401));
   }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log(decoded.id, "Decoded Token");

@@ -2,7 +2,7 @@ import userModel from "../models/userSchema.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt, { decode } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";  // Default import for sendMail
-import {ErrorHandler}  from "../utils/ErrorHandler.js";
+import {errorHandler}  from "../utils/errorHandler.js";
 import sendToken from "../middleware/jwt.js"
 import { Shop } from "../models/shopSchema.js";
 import bcrypt from "bcrypt"
@@ -24,13 +24,13 @@ export const registrationUser = catchAsyncErrors(async (req, res, next) => {
 
   // Validate the role (either 'farmer' or 'user')
   if (!['farmer', 'user'].includes(role)) {
-    return next(new ErrorHandler("Invalid role selection. Please choose either 'farmer' or 'user'.", 400));
+    return next(new errorHandler("Invalid role selection. Please choose either 'farmer' or 'user'.", 400));
   }
 
   // Check if email already exists
   const isEmailExist = await userModel.findOne({ email });
   if (isEmailExist) {
-    return next(new ErrorHandler("Email already exists", 400));
+    return next(new errorHandler("Email already exists", 400));
   }
 
   // Create user object and activation token
@@ -83,7 +83,7 @@ export const activateUser = catchAsyncErrors(async (req, res, next) => {
   // Extract the token from the Authorization header
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return next(new ErrorHandler("Authorization header missing or invalid", 401));
+    return next(new errorHandler("Authorization header missing or invalid", 401));
   }
 
   const activation_token = authHeader.split(" ")[1];
@@ -93,12 +93,12 @@ export const activateUser = catchAsyncErrors(async (req, res, next) => {
   try {
     newUser = jwt.verify(activation_token, process.env.ACTIVATION_SECRET);
   } catch (error) {
-    return next(new ErrorHandler("Invalid or expired activation token", 400));
+    return next(new errorHandler("Invalid or expired activation token", 400));
   }
 
   // Check if the activation code matches the one in the token
   if (newUser.activationCode !== activation_code) {
-    return next(new ErrorHandler("Invalid activation code", 400));
+    return next(new errorHandler("Invalid activation code", 400));
   }
 
   const { name, email, password, role } = newUser.user;
@@ -106,7 +106,7 @@ export const activateUser = catchAsyncErrors(async (req, res, next) => {
   // Check if a user with the given email already exists
   const existingUser = await userModel.findOne({ email });
   if (existingUser) {
-    return next( new ErrorHandler("Email already exists", 400));
+    return next( new errorHandler("Email already exists", 400));
   }
 
   // Create a new user in the database
@@ -139,19 +139,19 @@ export const LoginUser = catchAsyncErrors(async (req, res, next) => {
 
       // Check if email or password is missing
       if (!email || !password) {
-          return next(new ErrorHandler("Please enter email and password", 400)); // Instantiate ErrorHandler
+          return next(new errorHandler("Please enter email and password", 400)); // Instantiate errorHandler
       }
 
       // Find the user by email and include password field in the result
       const user = await userModel.findOne({ email }).select("+password");
       if (!user) {
-          return next(new ErrorHandler("Invalid email or password, user not found", 400)); // Instantiate ErrorHandler
+          return next(new errorHandler("Invalid email or password, user not found", 400)); // Instantiate errorHandler
       }
 
       // Check if the password matches the hashed password in the database
       const isPasswordMatched = await user.comparePassword(password);
       if (!isPasswordMatched) {
-          return next(new ErrorHandler("Invalid email or password", 400)); // Instantiate ErrorHandler
+          return next(new errorHandler("Invalid email or password", 400)); // Instantiate errorHandler
       }
 
       // If credentials are correct, generate a JWT token
@@ -168,7 +168,7 @@ export const LoginUser = catchAsyncErrors(async (req, res, next) => {
 
   } catch (error) {
       // Catch any errors and pass them to the error handler
-      return next(new ErrorHandler(error.message, 400)); // Instantiate ErrorHandler
+      return next(new errorHandler(error.message, 400)); // Instantiate errorHandler
   }
 });
 
@@ -193,21 +193,21 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 
     // Token validation and decoding
     if (!token) {
-      return next(new ErrorHandler("Please provide a token", 400));
+      return next(new errorHandler("Please provide a token", 400));
     }
 
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET);
     } catch (error) {
-      return next(new ErrorHandler("Invalid token", 401));
+      return next(new errorHandler("Invalid token", 401));
     }
     const userId = decoded.id;
 
     // Fetch user from the database
     let user = await userModel.findById(userId);
     if (!user) {
-      return next(new ErrorHandler("User not found", 404));
+      return next(new errorHandler("User not found", 404));
     }
 
     // Log files to ensure profile image is being sent
@@ -215,7 +215,7 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 
     // Check if a new profile image is provided
     if (!req.files || !req.files.profileImage) {
-      return next(new ErrorHandler("Please provide an image file", 400));
+      return next(new errorHandler("Please provide an image file", 400));
     }
 
     // Upload image to Cloudinary
@@ -226,7 +226,7 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
     console.log("Cloudinary Response:", uploadedImage);
 
     if (!uploadedImage || uploadedImage.error) {
-      return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+      return next(new errorHandler("Error uploading image to Cloudinary", 500));
     }
 
     // Update user avatar field
@@ -247,7 +247,7 @@ export const updateProfile = catchAsyncErrors(async (req, res, next) => {
 
   } catch (error) {
     console.error("❌ Error updating profile:", error);
-    return next(new ErrorHandler(error.message, 500));
+    return next(new errorHandler(error.message, 500));
   }
 });
 
@@ -260,7 +260,7 @@ export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
     const users = await userModel.find().select("-password");
 
     if (!users || users.length === 0) {
-      return next(new ErrorHandler("No users found", 404));
+      return next(new errorHandler("No users found", 404));
     }
 
     res.status(200).json({
@@ -270,7 +270,7 @@ export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
     });
 
   } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
+    return next(new errorHandler(error.message, 500));
   }
 });
 
@@ -290,7 +290,7 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
       }); // Populate hired farmers
 
     if (!user) {
-      return next(new ErrorHandler("User not found", 404));
+      return next(new errorHandler("User not found", 404));
     }
 
     res.status(200).json({
@@ -298,7 +298,7 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
       user,
     });
   } catch (error) {
-    return next(new ErrorHandler(error.message, 500));
+    return next(new errorHandler(error.message, 500));
   }
 });
 
@@ -310,7 +310,7 @@ export const createShop = catchAsyncErrors(async (req, res, next) => {
   console.log(token);
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, authorization denied", 401));
+    return next(new errorHandler("No token provided, authorization denied", 401));
   }
 
   try {
@@ -321,12 +321,12 @@ export const createShop = catchAsyncErrors(async (req, res, next) => {
     const user = await userModel.findById(decoded.id);
 
     if (!user) {
-      return next(new ErrorHandler("User not found with this email", 404));
+      return next(new errorHandler("User not found with this email", 404));
     }
 
     // Verify the user's role
     if (user.role !== "user") {
-      return next(new ErrorHandler("Only users with the 'user' role can create shops", 400));
+      return next(new errorHandler("Only users with the 'user' role can create shops", 400));
     }
 
     const { name, shop_code, password } = req.body;
@@ -334,7 +334,7 @@ export const createShop = catchAsyncErrors(async (req, res, next) => {
     // Check if the shop code already exists
     const isShopCodeExists = await Shop.findOne({ shop_code });
     if (isShopCodeExists) {
-      return next(new ErrorHandler("Shop code already exists", 400));
+      return next(new errorHandler("Shop code already exists", 400));
     }
 
     // Create a new shop and associate it with the user
@@ -360,7 +360,7 @@ export const createShop = catchAsyncErrors(async (req, res, next) => {
     });
 
   } catch (error) {
-    return next(new ErrorHandler("Invalid token", 401));
+    return next(new errorHandler("Invalid token", 401));
   }
 });
 
@@ -372,7 +372,7 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
 
   // Validate the token input
   if (!token) {
-    return next(new ErrorHandler("Please provide a token", 400));
+    return next(new errorHandler("Please provide a token", 400));
   }
 
   try {
@@ -386,13 +386,13 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
     const shop = await Shop.findOne({ shop_code, owner: decoded.id }).select("+password");
 
     if (!shop) {
-      return next(new ErrorHandler("Shop not found for this user", 404));
+      return next(new errorHandler("Shop not found for this user", 404));
     }
 
     // Compare the provided password with the hashed password in DB
     const isPasswordMatched = await bcrypt.compare(password, shop.password);
     if (!isPasswordMatched) {
-      return next(new ErrorHandler("Invalid shop_code or password", 401));
+      return next(new errorHandler("Invalid shop_code or password", 401));
     }
 
     // Proceed with the login process
@@ -404,9 +404,9 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
   } catch (error) {
     console.error("Error in loginShop:", error); // Log the error for debugging
     if (error.name === "TokenExpiredError") {
-      return next(new ErrorHandler("Token expired, please login again", 401));
+      return next(new errorHandler("Token expired, please login again", 401));
     }
-    return next(new ErrorHandler("Invalid token", 401));
+    return next(new errorHandler("Invalid token", 401));
   }
 });
 
@@ -416,7 +416,7 @@ export const getAllShopsWithProducts = catchAsyncErrors(async (req, res, next) =
     const shops = await Shop.find().populate("products");
 
     if (!shops || shops.length === 0) {
-      return next(new ErrorHandler("No shops found", 404));
+      return next(new errorHandler("No shops found", 404));
     }
 
     res.status(200).json({
@@ -424,7 +424,7 @@ export const getAllShopsWithProducts = catchAsyncErrors(async (req, res, next) =
       shops,
     });
   } catch (error) {
-    return next(new ErrorHandler("Error fetching shops", 500));
+    return next(new errorHandler("Error fetching shops", 500));
   }
 });
 
@@ -433,7 +433,7 @@ export const getShopById = catchAsyncErrors(async (req, res, next) => {
     const shop = await Shop.findById(req.params.id).populate("products");
 
     if (!shop) {
-      return next(new ErrorHandler("Shop not found", 404));
+      return next(new errorHandler("Shop not found", 404));
     }
 
     res.status(200).json({
@@ -441,7 +441,7 @@ export const getShopById = catchAsyncErrors(async (req, res, next) => {
       shop,
     });
   } catch (error) {
-    return next(new ErrorHandler("Error fetching shop details", 500));
+    return next(new errorHandler("Error fetching shop details", 500));
   }
 });
 
@@ -454,7 +454,7 @@ export const hireFarmer = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1];
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, authorization denied", 401));
+    return next(new errorHandler("No token provided, authorization denied", 401));
   }
 
   // Verify the token
@@ -462,7 +462,7 @@ export const hireFarmer = catchAsyncErrors(async (req, res, next) => {
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    return next(new ErrorHandler("Invalid or expired token", 403));
+    return next(new errorHandler("Invalid or expired token", 403));
   }
 
   const userId = decoded.id;
@@ -471,14 +471,14 @@ export const hireFarmer = catchAsyncErrors(async (req, res, next) => {
   const farmer = await FarmerProfile.findById(farmerId).populate("user", "name email"); // Populate the user field
 
   if (!farmer) {
-    return next(new ErrorHandler("Farmer not found", 404));
+    return next(new errorHandler("Farmer not found", 404));
   }
 
   // Check if the user has already hired the farmer (optional)
   const user = await userModel.findById(userId);
 
   if (user.hiredFarmers.includes(farmerId)) {
-    return next(new ErrorHandler("You have already hired this farmer", 400));
+    return next(new errorHandler("You have already hired this farmer", 400));
   }
 
   // Add farmer to the user's hiredFarmers list
@@ -503,14 +503,14 @@ export const getHiredFarmers = catchAsyncErrors(async (req, res, next) => {
   const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Get token from headers
 
   if (!token) {
-    return next(new ErrorHandler("No token provided, authorization denied", 401));
+    return next(new errorHandler("No token provided, authorization denied", 401));
   }
 
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.JWT_SECRET); // Verify the token using the JWT_SECRET
   } catch (err) {
-    return next(new ErrorHandler("Invalid or expired token", 403));
+    return next(new errorHandler("Invalid or expired token", 403));
   }
 
   const userId = decoded.id; // Get the user ID from the decoded token
@@ -525,7 +525,7 @@ export const getHiredFarmers = catchAsyncErrors(async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    return next(new errorHandler("User not found", 404));
   }
 
   res.status(200).json({
@@ -546,7 +546,7 @@ export const getHiredFarmersByUserId = catchAsyncErrors(async (req, res, next) =
   const { user_id } = req.params; // Get user_id from request body
 
   if (!user_id) {
-    return next(new ErrorHandler("User ID is required", 400));
+    return next(new errorHandler("User ID is required", 400));
   }
 
   // Find the user and populate the hiredFarmers field with details from the FarmerProfile model
@@ -559,7 +559,7 @@ export const getHiredFarmersByUserId = catchAsyncErrors(async (req, res, next) =
   });
 
   if (!user) {
-    return next(new ErrorHandler("User not found", 404));
+    return next(new errorHandler("User not found", 404));
   }
 
   res.status(200).json({
