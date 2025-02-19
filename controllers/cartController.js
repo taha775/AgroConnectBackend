@@ -1,7 +1,7 @@
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import { cartModel } from "../models/cartSchema.js";
 import { Product } from '../models/productSchema.js';
-import {errorHandler} from "../utils/errorHandler.js";
+import {errorHandler} from '../errorHandler.js';
 import jwt from "jsonwebtoken";
 /**
  * Function to calculate the total price of the cart

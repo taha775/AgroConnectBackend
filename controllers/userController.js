@@ -2,12 +2,13 @@ import userModel from "../models/userSchema.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt, { decode } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";  // Default import for sendMail
-import {errorHandler}  from "../utils/errorHandler.js";
-import sendToken from "../middleware/jwt.js"
+import {errorHandler} from '../errorHandler.js';
+
 import { Shop } from "../models/shopSchema.js";
 import bcrypt from "bcrypt"
 import FarmerProfile from "../models/farmerProfileSchema.js";
 import cloudinary from "cloudinary";
+
 
 
 cloudinary.config({
@@ -15,6 +16,7 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+console.log(import.meta.url);
 
 
 // Registration function with role validation

@@ -1,6 +1,6 @@
 import FarmerProfile from "../models/farmerProfileSchema.js";
 import userModel from "../models/userSchema.js"; // Assuming userModel is imported correctly
-import {errorHandler} from "../utils/errorHandler.js";
+import {errorHandler} from '../errorHandler.js';
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt from "jsonwebtoken";
 import cloudinary from "cloudinary";

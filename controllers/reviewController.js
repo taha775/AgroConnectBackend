@@ -1,7 +1,7 @@
 import { Product } from "../models/productSchema.js";
 import { Review } from "../models/reviewSchema.js";
 import jwt from "jsonwebtoken";
-import { errorHandler } from "../utils/errorHandler.js";
+import {errorHandler} from '../errorHandler.js';
 
 
 // Create a review

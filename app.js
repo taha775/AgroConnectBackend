@@ -50,6 +50,8 @@ app.use('/api/cart',cartRouter)
 app.use('/api/order',orderRouter)
 app.use('/api/review',reviewRouter)
 app.use('/api/farmer',farmerRouter)
+console.log(import.meta.url);
+
 
 // Export the app
 export default app;

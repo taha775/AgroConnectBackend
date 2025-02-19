@@ -1,6 +1,6 @@
 import { orderModel } from "../models/orderSchema.js";
 
-import {errorHandler} from "../utils/errorHandler.js";
+import {errorHandler} from '../errorHandler.js';
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt from 'jsonwebtoken';
 import { Product } from "../models/productSchema.js";
