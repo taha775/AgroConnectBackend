@@ -1,4 +1,5 @@
 
+
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
@@ -27,21 +28,12 @@ const productSchema = new mongoose.Schema(
       enum: ["seed", "cropprotection"],
       default: "seed",
     },
-    // productImage: {
-    //   public_id: {
-    //     type: String,
-    //     required: true,
-    //   },
-    //   url: {
-    //     type: String,
-    //     required: true,
-    //   },
-    // },
+
     image:{
       type:String,
       required:true
     },
-    shop: {
+  shop: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Shop", // Linking the product to a shop
       required: true,

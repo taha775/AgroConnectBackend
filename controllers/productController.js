@@ -68,10 +68,6 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
       category,
       shop: shop._id,
       image
-      // productImage: {
-      //   public_id: uploadedImage.public_id,
-      //   url: uploadedImage.secure_url,
-      // },
     });
 
     // Save the new product
@@ -101,7 +97,7 @@ export const createProduct = catchAsyncErrors(async (req, res, next) => {
 
 export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   const { productId } = req.params;
-  const { name, description, price, stock, category } = req.body;
+  const { name, description, price, stock, category,image } = req.body;
 
   if (!productId) {
     return next(new ErrorHandler("Product ID is required", 400));
@@ -140,28 +136,28 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
     if (category) product.category = category; // Make sure category is validated if necessary
 
     // Update image (if provided)
-    if (req.files && req.files.productImage) {
-      // Upload new image to Cloudinary
-      const uploadedImage = await cloudinary.uploader.upload(req.files.productImage.tempFilePath, {
-        folder: "PRODUCT_IMAGES",
-      });
+    // if (req.files && req.files.productImage) {
+    //   // Upload new image to Cloudinary
+    //   const uploadedImage = await cloudinary.uploader.upload(req.files.productImage.tempFilePath, {
+    //     folder: "PRODUCT_IMAGES",
+    //   });
 
-      // Check if Cloudinary upload was successful
-      if (!uploadedImage || uploadedImage.error) {
-        return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
-      }
+    //   // Check if Cloudinary upload was successful
+    //   if (!uploadedImage || uploadedImage.error) {
+    //     return next(new ErrorHandler("Error uploading image to Cloudinary", 500));
+    //   }
 
       // Delete old image from Cloudinary if the new image exists
-      if (product.productImage.public_id) {
-        await cloudinary.uploader.destroy(product.productImage.public_id);
-      }
+      // if (product.productImage.public_id) {
+      //   await cloudinary.uploader.destroy(product.productImage.public_id);
+      // }
 
       // Update the image details in the product
-      product.productImage = {
-        public_id: uploadedImage.public_id,
-        url: uploadedImage.secure_url,
-      };
-    }
+    //   product.productImage = {
+    //     public_id: uploadedImage.public_id,
+    //     url: uploadedImage.secure_url,
+    //   };
+    // }
 
     // Save updated product
     await product.save();
@@ -175,7 +171,7 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
         price: product.price,
         stock: product.stock,
         category: product.category,
-        image: product.productImage, // Returning the updated image info
+        image:image  // Returning the updated image info
       },
     });
   } catch (error) {
@@ -190,7 +186,7 @@ export const updateProduct = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-  
+
 
 
 export const getAllProducts = catchAsyncErrors(async (req, res, next) => {
@@ -205,7 +201,7 @@ export const getAllProducts = catchAsyncErrors(async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Check if the user exists
-    const user = await User.findById(decoded.id); 
+    const user = await User.findById(decoded.id);
     const admin = !user ? await Admin.findById(decoded.id) : null;
 
     if (!user && !admin) {
@@ -249,7 +245,7 @@ export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
     // console.log(decoded, "Decoded Token");
 
     // Find the shop by ID from the decoded token data
-    const shop = await Shop.findOne({owner:decoded.id});
+    const shop = await Shop.findOne({ owner: decoded.id });
     if (!shop) {
       return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
@@ -282,58 +278,58 @@ export const deleteProducts = catchAsyncErrors(async (req, res, next) => {
 
 
 
-  
+
 export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
-    // Check for the token in the Authorization header (Bearer token)
-    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
-  
-    if (!token) {
-      return next(new ErrorHandler("No token provided, unable to fetch products", 401));
+  // Check for the token in the Authorization header (Bearer token)
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
+
+  if (!token) {
+    return next(new ErrorHandler("No token provided, unable to fetch products", 401));
+  }
+
+  try {
+    // Verify the token using the shop's secret
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(decoded, "Decoded Token");
+
+    // Find the shop by ID from the decoded token data
+    const shop = await Shop.findOne({ owner: decoded.id }).populate('products');
+    if (!shop) {
+      return next(new ErrorHandler("Shop not found or token is invalid", 401));
     }
-  
-    try {
-      // Verify the token using the shop's secret
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log(decoded, "Decoded Token");
-  
-      // Find the shop by ID from the decoded token data
-      const shop = await Shop.findOne({owner:decoded.id}).populate('products');
-      if (!shop) {
-        return next(new ErrorHandler("Shop not found or token is invalid", 401));
-      }
-  
-      // Respond with the shop's products
-      res.status(200).json({
-        success: true,
-        products: shop.products,
-      });
-  
-    } catch (error) {
-      console.error("Error in getShopProducts:", error);
-      return next(new ErrorHandler("Invalid token or token expired", 401));
-    }
-  });
+
+    // Respond with the shop's products
+    res.status(200).json({
+      success: true,
+      products: shop.products,
+    });
+
+  } catch (error) {
+    console.error("Error in getShopProducts:", error);
+    return next(new ErrorHandler("Invalid token or token expired", 401));
+  }
+});
 
 
-  export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next) => {
-    const { productId } = req.params;
-  
-    // Check for the token in the Authorization header (Bearer token)
-    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
-  
-    if (!token) {
-      return next(new ErrorHandler("No token provided, unable to fetch product details", 401));
+export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next) => {
+  const { productId } = req.params;
+
+  // Check for the token in the Authorization header (Bearer token)
+  const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
+
+  if (!token) {
+    return next(new ErrorHandler("No token provided, unable to fetch product details", 401));
+  }
+
+  try {
+
+
+    if (!productId) {
+      return next(new ErrorHandler("Product ID is required", 400));
     }
-  
-    try {
- 
-    
-      if (!productId) {
-        return next(new ErrorHandler("Product ID is required", 400));
-      }
-  
-      // Find the product by its ID
-      const product = await Product.findById(productId)
+
+    // Find the product by its ID
+    const product = await Product.findById(productId)
       .populate({
         path: "reviews",
         model: "Review", // Ensure Review model is referenced correctly
@@ -364,20 +360,19 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
   });
   
 
-
-
-
-
-
-
   export const getCategoryProductCounts = catchAsyncErrors(async (req, res, next) => {
     const { category } = req.query; // Optional query param for filtering by category
   
     // Check for the token in the Authorization header (Bearer token)
-
+    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
+  
+    if (!token) {
+      return next(new ErrorHandler("No token provided, unable to fetch product counts", 401));
+    }
   
     try {
-
+      // Verify token here (if necessary)
+      const decoded = jwt.verify(token, process.env.JWT_SECRET); // Assuming you are using JWT verification
   
       // Aggregation to get count of products by category (seed vs crop protection)
       const categoryCounts = await Product.aggregate([
@@ -419,7 +414,8 @@ export const getShopProducts = catchAsyncErrors(async (req, res, next) => {
     }
   });
   
-  
+
+
   
 
 
