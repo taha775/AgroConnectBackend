@@ -364,16 +364,10 @@ export const getspecificProductsDetails = catchAsyncErrors(async (req, res, next
     const { category } = req.query; // Optional query param for filtering by category
   
     // Check for the token in the Authorization header (Bearer token)
-    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Bearer <token>
-  
-    if (!token) {
-      return next(new ErrorHandler("No token provided, unable to fetch product counts", 401));
-    }
-  
+
     try {
       // Verify token here (if necessary)
-      const decoded = jwt.verify(token, process.env.JWT_SECRET); // Assuming you are using JWT verification
-  
+     
       // Aggregation to get count of products by category (seed vs crop protection)
       const categoryCounts = await Product.aggregate([
         {
