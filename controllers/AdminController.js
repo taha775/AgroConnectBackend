@@ -1,5 +1,5 @@
 
-import bcrypt from 'bcrypt';
+import bcryptjs from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import Admin from '../models/AdminSchema.js';
 import userModel from '../models/userSchema.js';
@@ -19,7 +19,7 @@ const generateToken = (id) => {
 export const registerAdmin = async (req, res) => {
     const { username, email, password } = req.body;
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcryptjs.hash(password, 10);
         const admin = new Admin({
             username,
             email,
@@ -40,7 +40,7 @@ export const loginAdmin = async (req, res) => {
         if (!admin) {
             return res.status(404).json({ error: 'Admin not found' });
         }
-        const isMatch = await bcrypt.compare(password, admin.password);
+        const isMatch = await bcryptjs.compare(password, admin.password);
         if (!isMatch) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }

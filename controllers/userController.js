@@ -5,7 +5,7 @@ import sendMail from "../utils/sendMail.js";  // Default import for sendMail
 import {errorHandler} from '../errorHandler.js';
 
 import { Shop } from "../models/shopSchema.js";
-import bcrypt from "bcrypt"
+import bcryptjs from "bcryptjs"
 import FarmerProfile from "../models/farmerProfileSchema.js";
 import cloudinary from "cloudinary";
 
@@ -392,7 +392,7 @@ export const loginShop = catchAsyncErrors(async (req, res, next) => {
     }
 
     // Compare the provided password with the hashed password in DB
-    const isPasswordMatched = await bcrypt.compare(password, shop.password);
+    const isPasswordMatched = await bcryptjs.compare(password, shop.password);
     if (!isPasswordMatched) {
       return next(new errorHandler("Invalid shop_code or password", 401));
     }
