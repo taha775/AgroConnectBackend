@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import Admin from '../models/AdminSchema.js';
 import userModel from '../models/userSchema.js';
-import ErrorHandler from '../utils/errorHandler.js';
+import {ErrorHandler} from '../utils/errorHandler.js';
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
 import { Shop } from '../models/shopSchema.js';
 import { orderModel } from '../models/orderSchema.js';

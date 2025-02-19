@@ -2,7 +2,7 @@ import userModel from "../models/userSchema.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt, { decode } from "jsonwebtoken";
 import sendMail from "../utils/sendMail.js";  // Default import for sendMail
-import ErrorHandler  from "../utils/errorHandler.js";
+import {ErrorHandler}  from "../utils/errorHandler.js";
 import sendToken from "../middleware/jwt.js"
 import { Shop } from "../models/shopSchema.js";
 import bcrypt from "bcrypt"

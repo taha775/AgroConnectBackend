@@ -5,7 +5,7 @@ import { Product } from '../models/productSchema.js';
 import { Shop } from '../models/shopSchema.js';
 import User from "../models/userSchema.js"
 import { catchAsyncErrors } from '../middleware/catchAsyncErrors.js';
-import ErrorHandler from '../utils/errorHandler.js';
+import {ErrorHandler} from '../utils/errorHandler.js';
 import cloudinary from "cloudinary";
 import Admin from '../models/AdminSchema.js';
 
