@@ -1,6 +1,6 @@
 import cloudinary from 'cloudinary';
 
-import {ErrorHandler} from '../utils/errorHandler.js'; // Assuming custom error handler
+import {ErrorHandler} from '../utils/ErrorHandler.js'; // Assuming custom error handler
 import {catchAsyncErrors} from '../middleware/catchAsyncErrors.js'; // Assuming custom catchAsyncErrors middleware
 import { Shop } from "../models/shopSchema.js";
 import jwt from "jsonwebtoken"

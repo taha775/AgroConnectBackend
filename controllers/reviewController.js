@@ -1,7 +1,7 @@
 import { Product } from "../models/productSchema.js";
 import { Review } from "../models/reviewSchema.js";
 import jwt from "jsonwebtoken";
-import { ErrorHandler } from "../utils/errorHandler.js";
+import { ErrorHandler } from "../utils/ErrorHandler.js";
 
 
 // Create a review
@@ -17,7 +17,7 @@ export const createReview = async (req, res) => {
   
   const userId = decoded.id; 
 
-  try {
+  try { 
     const product = await Product.findById(productId);
 
     if (!product) {

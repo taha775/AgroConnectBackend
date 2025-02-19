@@ -1,6 +1,6 @@
 import { orderModel } from "../models/orderSchema.js";
-import { cartModel } from "../models/cartSchema.js"; // Assuming a cart model exists
-import {ErrorHandler} from "../utils/errorHandler.js";
+
+import {ErrorHandler} from "../utils/ErrorHandler.js";
 import { catchAsyncErrors } from "../middleware/catchAsyncErrors.js";
 import jwt from 'jsonwebtoken';
 import { Product } from "../models/productSchema.js";
